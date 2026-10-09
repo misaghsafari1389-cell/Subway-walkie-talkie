@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WAVE</title>
+<style>
+:root{--bg:#0a0f0a;--pn:#111a10;--bd:#2b3c26;--gr:#9fe870;--am:#ffb000;--rd:#ff3b30;--mu:#6f8a63}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--gr);font-family:ui-monospace,Menlo,Consolas,Tahoma,monospace;min-height:100vh;padding:14px;user-select:none;-webkit-user-select:none;touch-action:manipulation;background-image:repeating-linear-gradient(0deg,#0000 0 3px,#0000000d 3px 4px)}
+main{max-width:420px;margin:auto;display:flex;flex-direction:column;gap:10px}
+.row,.panel{background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:9px 12px;font-size:13px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.lbl{color:var(--mu);font-size:11px;letter-spacing:2px;margin-bottom:6px}
+h1{margin:0;letter-spacing:6px;color:var(--am);font-size:22px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--mu);display:inline-block}
+.dot.on{background:var(--gr);box-shadow:0 0 8px var(--gr)}.dot.off{background:var(--rd)}
+#wave{text-align:center;padding:12px;border:1px solid var(--gr);border-radius:6px;font-size:17px;color:var(--gr)}
+#wave.busy{border-color:var(--rd);color:var(--rd);box-shadow:0 0 12px #ff3b3055}
+#ptt{width:210px;height:210px;border-radius:50%;border:6px double var(--bd);background:radial-gradient(#1b2a18,#0d140c);color:var(--am);font-size:30px;font-weight:bold;letter-spacing:4px;margin:6px auto;display:block;touch-action:none;font-family:inherit}
+#ptt small{font-size:11px;letter-spacing:0;color:var(--mu)}
+#ptt.on{background:radial-gradient(#5a1410,#240807);border-color:var(--rd);color:#fff;box-shadow:0 0 25px var(--rd)}
+button.s,.chip{background:var(--pn);color:var(--gr);border:1px solid var(--bd);border-radius:6px;padding:11px;font-size:14px;font-family:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.chip{padding:7px 10px;font-size:13px}
+.chip.on{border-color:var(--am);color:var(--am)}
+.add{display:flex;gap:6px}.add input{flex:1}
+.u{padding:3px 0;font-size:14px}.u.talk{color:var(--rd);font-weight:bold}
+input[type=text]{width:100%;padding:11px;border-radius:6px;border:1px solid var(--bd);background:#0a120a;color:var(--gr);font-size:16px;font-family:inherit}
+#log{white-space:pre-wrap;font-size:11px;color:var(--mu);max-height:130px;overflow:auto;user-select:text}
+</style></head><body><main>
+<div class="row"><h1>WAVE</h1><span><span id="net" class="dot"></span></span></div>
+
+<section id="login" style="display:flex;flex-direction:column;gap:12px">
+  <input id="name" type="text" placeholder="نام شما" maxlength="20">
+  <input id="code" type="text" placeholder="کد دعوت" autocomplete="off">
+  <button class="s" id="join">ورود به موج (ورود آزمایشی با کد دعوت)</button>
+</section>
+
+<section id="app" hidden style="display:none;flex-direction:column;gap:10px">
+  <div class="panel"><div class="lbl">کانال‌ها</div><div id="chs" class="chips"></div>
+    <div class="add"><input id="newch" type="text" placeholder="نام کانال جدید" maxlength="20"><button class="s" id="addch">+</button></div></div>
+  <div id="wave">● موج آزاد</div>
+  <div class="row"><span>CH: <b id="chname">main</b></span><span id="mic"></span></div>
+  <div class="panel"><div class="lbl">کاربران (<b id="cnt">1</b>)</div><div id="users"></div></div>
+  <button id="ptt">PTT<br><small>نگه دار و صحبت کن</small></button>
+  <div id="tx" style="text-align:center;min-height:20px"></div>
+  <div class="row"><span>صدا</span><input id="vol" type="range" min="0" max="100" value="100"></div>
+  <div class="row"><span>خش‌خش بی‌سیم</span><input id="hiss" type="range" min="0" max="100" value="15"></div>
+  <div class="row"><label><input id="fx" type="checkbox" checked> افکت شروع/پایان</label></div>
+  <button class="s" id="lb">تست تک‌دستگاهی (حتماً با هدفون)</button>
+  <button class="s" id="sab">🎙 گوش‌به‌زنگ صابر</button>
+  <div id="log"></div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let me,token,es,stream,track,talking=false,wantTalk=false,pcs={},names={},audios={};
+const cfg={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};  // برای اینترنت واقعی بعداً TURN لازم می‌شود
+const log=t=>{$('log').textContent=t+'\n'+$('log').textContent.slice(0,800)};
+const post=(p,o)=>fetch(p,{method:'POST',body:JSON.stringify({id:me,token,...o})}).then(r=>r.json()).catch(()=>({}));
+const AC=new (window.AudioContext||window.webkitAudioContext)();
+function beep(f,d=.12){
+  if(!$('fx').checked)return; AC.resume();
+  const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=f; g.gain.value=.12;
+  o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+d);
+}
+const count=()=>renderUsers();
+function setFloor(f){
+  curF=f; const w=$('wave'); w.classList.toggle('busy',!!f.holder);
+  w.textContent=!f.holder?'● موج آزاد':f.holder===me?'🔴 شما در حال ارسال':'🔴 مشغول: '+(f.name||'');
+  if(f.holder&&f.holder!==me)startHiss(); else stopHiss();
+  renderUsers();
+}
+
+$('join').onclick=async()=>{
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
+  catch(e){return alert('میکروفون در دسترس نیست ('+e.name+'). آدرس باید localhost یا https باشد و مجوز میکروفون را بدهید.')}
+  const jb=$('join'),old=jb.textContent; jb.disabled=true; jb.textContent='در حال اتصال به سرور (بار اول تا ۱ دقیقه)...';
+  const r=await fetch('/ice?code='+encodeURIComponent($('code').value)).catch(()=>null);
+  jb.disabled=false; jb.textContent=old;
+  if(!r||!r.ok)return alert(r&&r.status===403?'کد دعوت اشتباه است':'سرور در دسترس نیست');
+  cfg.iceServers=await r.json();
+  setInterval(()=>fetch('/ping').catch(()=>{}),240000);          // سرور رایگان خواب نرود
+  track=stream.getAudioTracks()[0]; track.enabled=false; setupMedia();
+  $('mic').textContent='میکروفون: آماده ✅';
+  openCh('main'); setInterval(loadChs,15000);
+};
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+let ch='main',curF={holder:null};
+function renderUsers(){
+  const rows=[[me,($('name').value||'کاربر')+' (من)'],...Object.entries(names)];
+  $('cnt').textContent=rows.length;
+  $('users').innerHTML=rows.map(([i,n])=>`<div class="u${curF.holder===i?' talk':''}">${curF.holder===i?'🔴':'●'} ${esc(n)}</div>`).join('');
+}
+function openCh(c){
+  if(es)es.close(); Object.values(pcs).forEach(p=>p.close()); pcs={}; names={};
+  Object.values(audios).forEach(a=>a.remove()); audios={};
+  es=new EventSource('/events?name='+encodeURIComponent($('name').value||'کاربر')+'&code='+encodeURIComponent($('code').value)+'&ch='+encodeURIComponent(c));
+  es.onopen=()=>$('net').className='dot on';
+  es.onerror=()=>$('net').className='dot off';
+  es.addEventListener('hello',e=>{
+    const d=JSON.parse(e.data); me=d.id; token=d.token;
+    Object.values(pcs).forEach(p=>p.close()); pcs={}; names={};
+    d.peers.forEach(p=>{names[p.id]=p.name; connect(p.id,true)});   // تازه‌وارد به بقیه پیشنهاد اتصال می‌دهد
+    setFloor(d.floor); count();
+    $('login').style.display='none'; $('app').style.display='flex';
+  });
+  es.addEventListener('join',e=>{const p=JSON.parse(e.data); names[p.id]=p.name; count(); log(p.name+' وارد شد')});
+  es.addEventListener('leave',e=>{
+    const {id}=JSON.parse(e.data); if(pcs[id])pcs[id].close(); delete pcs[id]; delete names[id];
+    if(audios[id])audios[id].remove(); delete audios[id]; count();
+  });
+  es.addEventListener('signal',e=>onSignal(JSON.parse(e.data)));
+  es.addEventListener('floor',e=>setFloor(JSON.parse(e.data)));
+  es.addEventListener('revoked',()=>{log('زمان صحبت (۶۰ ثانیه) تمام شد');stopTalk()});
+  setTimeout(loadChs,800);
+}
+async function loadChs(){
+  const r=await fetch('/channels?code='+encodeURIComponent($('code').value)).then(x=>x.json()).catch(()=>[]);
+  $('chs').innerHTML='';
+  r.forEach(c=>{const b=document.createElement('button');b.className='chip'+(c.name===ch?' on':'');b.textContent=c.name+' ('+c.n+')';b.onclick=()=>switchCh(c.name);$('chs').append(b)});
+}
+function switchCh(n){
+  n=n.trim().replace(/[^\w\u0600-\u06FF-]/g,'').slice(0,20); if(!n||n===ch)return;
+  stopTalk(); ch=n; $('chname').textContent=n; curF={holder:null}; openCh(n);
+}
+$('addch').onclick=()=>{switchCh($('newch').value);$('newch').value=''};
+
+
+// ---------- خش‌خش بی‌سیم (فقط وقتی دیگری صحبت می‌کند) ----------
+let nz=null,ng=null;
+function startHiss(){
+  if(nz||+$('hiss').value===0)return; AC.resume();
+  const len=AC.sampleRate*2,buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  nz=AC.createBufferSource(); nz.buffer=buf; nz.loop=true;
+  const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=2200; f.Q.value=.6;
+  ng=AC.createGain(); ng.gain.value=$('hiss').value/1000;
+  nz.connect(f); f.connect(ng); ng.connect(AC.destination); nz.start();
+}
+function stopHiss(){
+  if(!nz)return; const z=nz; nz=null;
+  ng.gain.value=$('hiss').value/450;                 // پوف کوتاه آخر صحبت (squelch)
+  setTimeout(()=>{try{z.stop()}catch{}},140);
+}
+$('hiss').oninput=()=>{if(ng)ng.gain.value=$('hiss').value/1000};
+
+// ---------- دکمهٔ هدفون (Media Session): یک بار = شروع، دوباره = پایان ----------
+let sil=null;
+function silentWav(){
+  const n=8000,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);
+  new Uint8Array(b,44).fill(128);
+  return URL.createObjectURL(new Blob([b],{type:'audio/wav'}));
+}
+function toggleTalk(){ if(talking||wantTalk)stopTalk(); else startTalk(); if(sil)sil.play().catch(()=>{}); }
+function setupMedia(){
+  sil=new Audio(silentWav()); sil.loop=true; sil.volume=.02; sil.play().catch(()=>{});
+  if(!('mediaSession' in navigator))return log('دکمهٔ هدفون در این مرورگر پشتیبانی نمی‌شود');
+  navigator.mediaSession.metadata=new MediaMetadata({title:'WAVE',artist:'بی‌سیم'});
+  ['play','pause','nexttrack','previoustrack'].forEach(a=>{try{navigator.mediaSession.setActionHandler(a,()=>{log('دکمهٔ هدفون: '+a);toggleTalk()})}catch{}});
+}
+
+function connect(id,init){
+  const pc=pcs[id]=new RTCPeerConnection(cfg);
+  pc.addTrack(track,stream);
+  pc.onicecandidate=e=>e.candidate&&post('/signal',{to:id,data:{c:e.candidate}});
+  pc.ontrack=e=>{
+    let a=audios[id]; if(!a){a=audios[id]=new Audio(); a.autoplay=true; document.body.append(a)}
+    a.srcObject=e.streams[0]; a.volume=$('vol').value/100; a.play().catch(()=>{});
+  };
+  pc.onconnectionstatechange=()=>log((names[id]||id)+': '+pc.connectionState);
+  if(init)pc.onnegotiationneeded=async()=>{
+    await pc.setLocalDescription(await pc.createOffer());
+    post('/signal',{to:id,data:{d:pc.localDescription}});
+  };
+  return pc;
+}
+function onSignal({from,data}){
+  const pc=pcs[from]||connect(from,false);
+  pc.q=(pc.q||Promise.resolve()).then(async()=>{                    // ترتیب پیام‌ها حفظ می‌شود
+    if(data.d){
+      await pc.setRemoteDescription(data.d);
+      if(data.d.type==='offer'){await pc.setLocalDescription(await pc.createAnswer()); post('/signal',{to:from,data:{d:pc.localDescription}})}
+    }
+    if(data.c){try{await pc.addIceCandidate(data.c)}catch{}}
+  }).catch(e=>log('خطای اتصال: '+e.message));
+}
+$('vol').oninput=()=>Object.values(audios).forEach(a=>a.volume=$('vol').value/100);
+
+// ---------- PTT ----------
+async function startTalk(){
+  wantTalk=true;
+  const r=await post('/ptt',{action:'down'});
+  if(!wantTalk){if(r.granted)post('/ptt',{action:'up'});return}     // قبل از جواب سرور دکمه رها شد
+  if(!r.granted){beep(200,.25);return log('موج مشغول است'+(r.holder?': '+(names[r.holder]||''):''))}
+  talking=true; track.enabled=true; $('ptt').classList.add('on'); beep(880); $('tx').textContent='🔴 در حال ارسال';
+}
+function stopTalk(){
+  wantTalk=false; if(!talking)return;
+  talking=false; track.enabled=false; $('ptt').classList.remove('on'); beep(520); $('tx').textContent='';
+  post('/ptt',{action:'up'});
+}
+const b=$('ptt');
+b.onpointerdown=e=>{e.preventDefault(); b.setPointerCapture(e.pointerId); startTalk()};
+b.onpointerup=b.onpointercancel=stopTalk;
+b.oncontextmenu=e=>e.preventDefault();
+addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&e.target.tagName!=='INPUT'){e.preventDefault();startTalk()}});
+addEventListener('keyup',e=>{if(e.code==='Space')stopTalk()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopTalk()});
+
+// ---------- تست تک‌دستگاهی: صدا از طریق WebRTC واقعی می‌رود و برمی‌گردد ----------
+let lb=null;
+$('lb').onclick=async()=>{
+  if(lb){lb.a.close();lb.b.close();lb.au.remove();lb=null;return $('lb').textContent='تست تک‌دستگاهی (حتماً با هدفون)'}
+  const a=new RTCPeerConnection(cfg),c=new RTCPeerConnection(cfg),au=new Audio(); au.autoplay=true; document.body.append(au);
+  lb={a,b:c,au};
+  a.onicecandidate=e=>e.candidate&&c.addIceCandidate(e.candidate);
+  c.onicecandidate=e=>e.candidate&&a.addIceCandidate(e.candidate);
+  c.ontrack=e=>{au.srcObject=e.streams[0]};
+  const s=stream.clone(); s.getAudioTracks()[0].enabled=true; a.addTrack(s.getAudioTracks()[0],s);
+  await a.setLocalDescription(await a.createOffer()); await c.setRemoteDescription(a.localDescription);
+  await c.setLocalDescription(await c.createAnswer()); await a.setRemoteDescription(c.localDescription);
+  $('lb').textContent='⏹ توقف تست (صدای خودت را می‌شنوی)';
+};
+
+// ---------- صابر ----------
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition; let rec=null;
+let lastB=0;
+function longBeep(){AC.resume();const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=1000;g.gain.value=.15;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+2)}
+function saberReply(){
+  log('📻 صابر: صابر به گوشم'); beep(700);
+  const u=new SpeechSynthesisUtterance('صابر به گوشم'); u.lang='fa-IR'; speechSynthesis.speak(u);
+}
+$('sab').onclick=()=>{
+  if(!SR)return log('این مرورگر تشخیص گفتار ندارد (Chrome لازم است)');
+  if(rec){const r=rec;rec=null;r.stop();return $('sab').textContent='🎙 گوش‌به‌زنگ صابر'}
+  rec=new SR(); rec.lang='fa-IR'; rec.continuous=true; rec.interimResults=true;
+  rec.onresult=e=>{
+    const r=e.results[e.results.length-1],t=r[0].transcript; if(r.isFinal)log('شنیدم: '+t);
+    const n=t.replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\s/g,'');
+    if(/صابر/.test(n)&&Date.now()-lastB>4000){lastB=Date.now();longBeep()}      // بوق ۲ ثانیه
+    if(r.isFinal&&/صابر.*صابر.*(میثاق|مثاق|میصاق)/.test(n))setTimeout(saberReply,2300);
+  };
+  rec.onend=()=>{if(rec)try{rec.start()}catch{}};
+  rec.onerror=e=>log('خطای تشخیص گفتار: '+e.error);
+  rec.start(); $('sab').textContent='⏹ توقف گوش‌به‌زنگ';
+};
+</script></body></html>
