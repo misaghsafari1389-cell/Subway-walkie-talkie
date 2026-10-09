@@ -67,8 +67,12 @@ http.createServer(async (req, res) => {
     }
     return res.end('{}');
   }
-  fs.readFile(path.join(__dirname, 'index.html'), (e, d) => {
-    if (e) { res.writeHead(404); return res.end('index.html not found'); }
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(d);
+  const F = { '/': ['index.html', 'text/html; charset=utf-8'], '/index.html': ['index.html', 'text/html; charset=utf-8'],
+    '/manifest.webmanifest': ['manifest.webmanifest', 'application/manifest+json'], '/sw.js': ['sw.js', 'text/javascript'],
+    '/icon-192.png': ['icon-192.png', 'image/png'], '/icon-512.png': ['icon-512.png', 'image/png'] }[u.pathname];
+  if (!F) { res.writeHead(404); return res.end(); }
+  fs.readFile(path.join(__dirname, F[0]), (e, d) => {
+    if (e) { res.writeHead(404); return res.end(); }
+    res.writeHead(200, { 'Content-Type': F[1], 'Cache-Control': 'no-cache' }); res.end(d);
   });
 }).listen(PORT, () => console.log('WAVE v2 on port ' + PORT));
