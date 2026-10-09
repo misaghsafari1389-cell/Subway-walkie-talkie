@@ -10,6 +10,7 @@ function iceServers() {
 }
 const byId = new Map(), rooms = new Map();
 const clean = s => String(s || '').replace(/[^\w\u0600-\u06FF-]/g, '').slice(0, 20) || 'main';
+const uniq = (r, s) => { let nm = String(s || 'کاربر').slice(0, 24), b = nm, k = 2; const t = new Set([...r.m.values()].map(p => p.name)); while (t.has(nm)) nm = b + ' ' + k++; return nm; };
 const room = n => { if (!rooms.has(n)) rooms.set(n, { n, m: new Map(), floor: null, t: null }); return rooms.get(n); };
 const send = (c, ev, d) => c.res.write(`event: ${ev}\ndata: ${JSON.stringify(d)}\n\n`);
 const all = (r, ev, d) => r.m.forEach(c => send(c, ev, d));
@@ -34,9 +35,9 @@ http.createServer(async (req, res) => {
     if (byId.size >= MAX_ALL || (!rooms.has(n) && rooms.size >= MAX_ROOMS) || (rooms.has(n) && rooms.get(n).m.size >= MAX_ROOM)) { res.writeHead(503); return res.end(); }
     const r = room(n);
     const c = { id: crypto.randomBytes(4).toString('hex'), token: crypto.randomBytes(12).toString('hex'),
-      name: (u.searchParams.get('name') || 'کاربر').slice(0, 20), res, room: r };
+      name: uniq(r, u.searchParams.get('name')), res, room: r };
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-    send(c, 'hello', { id: c.id, token: c.token, peers: [...r.m.values()].map(p => ({ id: p.id, name: p.name })), floor: fst(r) });
+    send(c, 'hello', { id: c.id, token: c.token, name: c.name, peers: [...r.m.values()].map(p => ({ id: p.id, name: p.name })), floor: fst(r) });
     all(r, 'join', { id: c.id, name: c.name });
     r.m.set(c.id, c); byId.set(c.id, c);
     const ping = setInterval(() => res.write(': ping\n\n'), 15000);
@@ -53,6 +54,10 @@ http.createServer(async (req, res) => {
     const r = c.room;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     if (u.pathname === '/signal') { const t = r.m.get(b.to); if (t) send(t, 'signal', { from: c.id, data: b.data }); return res.end('{}'); }
+    if (u.pathname === '/announce') {                    // «پاور آن» برای همهٔ کانال (فقط وقتی موج آزاد است)
+      if (!r.floor && Date.now() - (c.lastA || 0) > 3000) { c.lastA = Date.now(); all(r, 'announce', { kind: 'power', name: c.name }); }
+      return res.end('{}');
+    }
     if (u.pathname === '/ptt') {
       if (b.action === 'down') {
         if (!r.floor) {

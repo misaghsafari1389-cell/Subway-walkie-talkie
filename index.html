@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fa" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
 <meta name="theme-color" content="#0a0f0a">
 <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png">
 <title>WAVE</title>
@@ -11,7 +11,11 @@ html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
 body{background:var(--bg);color:var(--gr);font-family:ui-monospace,Menlo,Consolas,Tahoma,sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
 [hidden]{display:none!important}
 #login,#app{height:100%;display:flex;flex-direction:column;gap:10px;padding:12px 0;max-width:480px;margin:auto}
-#login{justify-content:center}
+#login{position:fixed;inset:0;height:auto;max-width:none;margin:0;padding:0 24px 8dvh;align-items:center;justify-content:center;gap:14px;background:radial-gradient(circle at 50% 35%,#16261a,#0a0f0a 70%);z-index:5}
+.av{width:104px;height:104px;border-radius:50%;border:2px solid var(--bd);background:#0f1a0f center/62% no-repeat url(/icon-192.png)}
+#dn{font-size:20px;color:#e6f5d8;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pw{display:flex;width:min(290px,84vw)}.pw input{flex:1;border-radius:0 6px 6px 0}.pw button{width:48px;border-radius:6px 0 0 6px;font-size:20px;padding:0}
+#lst{text-align:center;min-height:20px;color:var(--mu);font-size:13px}
 header{display:flex;align-items:center;gap:8px}
 h1{margin:0;color:var(--am);letter-spacing:5px;font-size:20px;flex:1}
 .dot{width:12px;height:12px;border-radius:50%;background:var(--mu)}.dot.on{background:var(--gr);box-shadow:0 0 8px var(--gr)}.dot.off{background:var(--rd)}
@@ -20,135 +24,83 @@ button.s{background:var(--pn);color:var(--gr);border:1px solid var(--bd);border-
 button.s.on{border-color:var(--am);color:var(--am)}
 #wave{text-align:center;padding:10px;border:1px solid var(--gr);border-radius:6px;font-size:17px}
 #wave.busy{border-color:var(--rd);color:var(--rd);box-shadow:0 0 12px #ff3b3055}
+.meter{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--mu)}
+#vu{display:flex;gap:3px;flex:1;max-width:55%}#vu i{flex:1;height:10px;background:var(--bd);border-radius:1px}
+#vu i.on{background:var(--gr)}#vu i.on.h{background:var(--am)}#vu i.on.x{background:var(--rd)}
 #users{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;padding:8px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--pn)}
 #users .talk{color:var(--rd);font-weight:bold}
-#pttbox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-#ptt{width:min(64vw,38dvh);height:min(64vw,38dvh);border-radius:50%;border:6px double var(--bd);background:radial-gradient(#1b2a18,#0d140c);color:var(--am);font-size:30px;font-weight:bold;letter-spacing:4px;touch-action:none;font-family:inherit}
+#pttbox{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+#ptt{width:min(64vw,36dvh);height:min(64vw,36dvh);border-radius:50%;border:6px double var(--bd);background:radial-gradient(#1b2a18,#0d140c);color:var(--am);font-size:30px;font-weight:bold;letter-spacing:4px;touch-action:none;font-family:inherit}
 #ptt small{display:block;font-size:11px;letter-spacing:0;color:var(--mu)}
 #ptt.on{background:radial-gradient(#5a1410,#240807);border-color:var(--rd);color:#fff;box-shadow:0 0 25px var(--rd)}
+#pwr{position:absolute;right:0;bottom:0;width:66px;height:34px;font-size:11px;font-family:inherit;border:1px solid var(--am);color:var(--am);border-radius:4px;background:var(--pn)}
+#pwr:active{background:var(--am);color:#000}
 #tx{text-align:center;height:20px;font-size:14px}
 nav{display:flex;gap:8px}nav button{flex:1}
 #sheet{position:fixed;inset:0;background:#000b;display:none}#sheet.show{display:flex}
 .box{width:100%;max-width:480px;margin:auto auto 0;background:var(--pn);border-top:2px solid var(--bd);padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;font-size:14px}
 .r{display:flex;align-items:center;justify-content:space-between;gap:8px}.r input[type=range]{flex:1}.r input[type=text]{flex:1}
-#log{height:78px;overflow:hidden;white-space:pre-wrap;font-size:11px;color:var(--mu)}
+#log{height:70px;overflow:hidden;white-space:pre-wrap;font-size:11px;color:var(--mu)}
 </style></head><body>
 <div id="login">
-  <h1 style="text-align:center">WAVE</h1>
-  <input id="name" type="text" placeholder="نام شما" maxlength="20">
-  <input id="code" type="text" placeholder="کد دعوت" autocomplete="off">
-  <button class="s" id="join">ورود به موج</button>
+  <div class="av"></div>
+  <div id="dn"></div>
+  <div class="pw" id="pwbox"><input id="code" type="password" placeholder="رمز" autocomplete="off"><button class="s" id="join">←</button></div>
+  <div id="lst"></div>
 </div>
 <div id="app" hidden>
   <header><h1>WAVE</h1><select id="chsel"></select><span id="net" class="dot"></span></header>
   <div id="wave">● موج آزاد</div>
+  <div class="meter"><span id="freq"></span><div id="vu"></div></div>
   <div id="users"></div>
-  <div id="pttbox"><button id="ptt">PTT<small>نگه دار و صحبت کن</small></button></div>
+  <div id="pttbox"><button id="ptt">PTT<small>نگه دار و صحبت کن</small></button><button id="pwr">⏻ POWER</button></div>
   <div id="tx"></div>
   <nav><button class="s" id="sab">🎙 صابر</button><button class="s" id="hp">🎧 هدفون</button><button class="s" id="gear">⚙ تنظیمات</button></nav>
 </div>
 <div id="sheet"><div class="box">
   <div class="r"><span>صدا</span><input id="vol" type="range" min="0" max="100" value="100"></div>
   <div class="r"><span>خش‌خش</span><input id="hiss" type="range" min="0" max="100" value="25"><button class="s" id="hisstest">تست</button></div>
-  <div class="r"><label><input id="fx" type="checkbox" checked> افکت شروع/پایان</label><span id="mic"></span></div>
+  <div class="r"><label><input id="radio" type="checkbox" checked> فیلتر رادیویی</label><label><input id="fx" type="checkbox" checked> بوق‌ها</label><span id="mic"></span></div>
   <div class="r"><label><input id="asr" type="checkbox"> جملهٔ «صابر صابر از میثاق»</label></div>
   <div class="r"><input id="newch" type="text" placeholder="نام کانال جدید" maxlength="20"><button class="s" id="addch">+ بساز</button></div>
-  <div class="r"><button class="s" id="lb">تست تک‌دستگاهی</button><button class="s" id="close">بستن</button></div>
+  <div class="r"><button class="s" id="lb">تست تک‌دستگاهی</button><button class="s" id="logout">خروج (تغییر رمز)</button><button class="s" id="close">بستن</button></div>
   <div id="log"></div>
 </div></div>
 <script>
 const $=id=>document.getElementById(id);
-let me,token,es,stream,track,talking=false,wantTalk=false,pcs={},names={},audios={},ch='main',curF={holder:null};
+let myName='',me,token,es,stream,rawTrack,track,talking=false,wantTalk=false,joining=false,pcs={},names={},audios={},chains={},ch='main',curF={holder:null},lb=null;
 const cfg={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 const log=t=>{const l=$('log');l.textContent=(t+'\n'+l.textContent).split('\n').slice(0,6).join('\n')};
-const flash=t=>{$('tx').textContent=t;clearTimeout(flash.t);flash.t=setTimeout(()=>{if(!talking)$('tx').textContent=''},1800)};
+const flash=t=>{$('tx').textContent=t;clearTimeout(flash.t);flash.t=setTimeout(()=>{if(!talking)$('tx').textContent=''},2200)};
 const post=(p,o)=>fetch(p,{method:'POST',body:JSON.stringify({id:me,token,...o})}).then(r=>r.json()).catch(()=>({}));
+const store={get(){try{return JSON.parse(localStorage.getItem('wave')||'{}')}catch{return{}}},set(o){try{localStorage.setItem('wave',JSON.stringify(o))}catch{}},clear(){try{localStorage.removeItem('wave')}catch{}}};
+const vib=m=>{try{navigator.vibrate&&navigator.vibrate(m)}catch{}};
 const AC=new (window.AudioContext||window.webkitAudioContext)();
-addEventListener('pointerdown',()=>AC.resume(),{passive:true});
+const rsm=()=>Promise.race([AC.resume().catch(()=>{}),new Promise(r=>setTimeout(r,600))]);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-function beep(f,d=.12){
+
+// ---------- صداهای بی‌سیم ----------
+function tone(f,d=.12,v=.12){AC.resume();const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}
+const beep=(f,d)=>{if($('fx').checked)tone(f,d)};
+function click(v=.35){
   if(!$('fx').checked)return; AC.resume();
-  const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=f; g.gain.value=.12;
-  o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+d);
+  const n=AC.sampleRate*.03|0,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
+  const s=AC.createBufferSource(),g=AC.createGain(); s.buffer=b; g.gain.value=v; s.connect(g); g.connect(AC.destination); s.start();
 }
-function longBeep(){AC.resume();const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=1000;g.gain.value=.2;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+2)}
-const tune=s=>s.replace(/(a=fmtp:\d+ [^\r\n]*useinbandfec=1)/,'$1;stereo=0;maxaveragebitrate=48000;usedtx=0');   // کیفیت بهتر Opus
+const longBeep=()=>tone(1000,2,.2);
+const rxOpen=()=>{click();beep(1100,.07)};          // شنونده: باز شدن موج
+const rxClose=()=>beep(1500,.16);                    // شنونده: راجر بیپ آخر صحبت
+function powerOn(n){
+  flash('⏻ '+n+': POWER ON'); log(n+': POWER ON');
+  [600,800,1050].forEach((f,i)=>setTimeout(()=>tone(f,.12,.15),i*130));
+  setTimeout(()=>{try{const u=new SpeechSynthesisUtterance('Power on');u.lang='en-US';speechSynthesis.speak(u)}catch{}},450);
+}
+$('pwr').onclick=()=>{vib(30);post('/announce',{})};
+const tune=s=>s.replace(/(a=fmtp:\d+ [^\r\n]*useinbandfec=1)/,'$1;stereo=0;maxaveragebitrate=48000;usedtx=0');
 
-// میکروفون: فیلتر صدای بم + کمپرسور + تقویت => واضح‌تر و بلندتر
-async function processMic(raw){
-  try{
-    await AC.resume(); if(AC.state!=='running')return raw;
-    const src=AC.createMediaStreamSource(new MediaStream([raw])),hp=AC.createBiquadFilter(),cp=AC.createDynamicsCompressor(),g=AC.createGain(),dst=AC.createMediaStreamDestination();
-    hp.type='highpass'; hp.frequency.value=100; cp.threshold.value=-30; cp.ratio.value=4; cp.attack.value=.005; cp.release.value=.15; g.gain.value=1.8;
-    src.connect(hp); hp.connect(cp); cp.connect(g); g.connect(dst);
-    return dst.stream.getAudioTracks()[0];
-  }catch{return raw}
-}
-
-// ورود
-$('join').onclick=async()=>{
-  AC.resume();
-  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:true,channelCount:1,sampleRate:48000}})}
-  catch(e){return alert('میکروفون در دسترس نیست ('+e.name+'). مجوز میکروفون را بدهید.')}
-  const jb=$('join'),old=jb.textContent; jb.disabled=true; jb.textContent='در حال اتصال به سرور (بار اول تا ۱ دقیقه)...';
-  const r=await fetch('/ice?code='+encodeURIComponent($('code').value)).catch(()=>null);
-  jb.disabled=false; jb.textContent=old;
-  if(!r||!r.ok)return alert(r&&r.status===403?'کد دعوت اشتباه است':'سرور در دسترس نیست');
-  cfg.iceServers=await r.json();
-  setInterval(()=>fetch('/ping').catch(()=>{}),240000);
-  track=await processMic(stream.getAudioTracks()[0]); track.enabled=false;
-  $('mic').textContent='میکروفون ✅'; setupMedia();
-  openCh('main'); setInterval(loadChs,15000);
-};
-
-function renderUsers(){
-  const rows=[[me,$('name').value||'کاربر'],...Object.entries(names)];
-  $('users').innerHTML='👥 '+rows.length+' · '+rows.map(([i,n])=>`<span class="${curF.holder===i?'talk':''}">${esc(n)}</span>`).join('، ');
-}
-const count=renderUsers;
-function setFloor(f){
-  curF=f; const w=$('wave'); w.classList.toggle('busy',!!f.holder);
-  w.textContent=!f.holder?'● موج آزاد':f.holder===me?'🔴 شما در حال ارسال':'🔴 مشغول: '+(f.name||'');
-  if(f.holder&&f.holder!==me)startHiss(); else stopHiss();
-  renderUsers();
-}
-function openCh(c){
-  if(es)es.close(); Object.values(pcs).forEach(p=>p.close()); pcs={}; names={}; stopHiss();
-  Object.values(audios).forEach(a=>a.remove()); audios={};
-  es=new EventSource('/events?name='+encodeURIComponent($('name').value||'کاربر')+'&code='+encodeURIComponent($('code').value)+'&ch='+encodeURIComponent(c));
-  es.onopen=()=>$('net').className='dot on';
-  es.onerror=()=>$('net').className='dot off';
-  es.addEventListener('hello',e=>{
-    const d=JSON.parse(e.data); me=d.id; token=d.token;
-    Object.values(pcs).forEach(p=>p.close()); pcs={}; names={};
-    d.peers.forEach(p=>{names[p.id]=p.name; connect(p.id,true)});
-    setFloor(d.floor); $('login').hidden=true; $('app').hidden=false;
-  });
-  es.addEventListener('join',e=>{const p=JSON.parse(e.data); names[p.id]=p.name; renderUsers(); log(p.name+' وارد شد')});
-  es.addEventListener('leave',e=>{
-    const {id}=JSON.parse(e.data); if(pcs[id])pcs[id].close(); delete pcs[id]; delete names[id];
-    if(audios[id])audios[id].remove(); delete audios[id]; renderUsers();
-  });
-  es.addEventListener('signal',e=>onSignal(JSON.parse(e.data)));
-  es.addEventListener('floor',e=>setFloor(JSON.parse(e.data)));
-  es.addEventListener('revoked',()=>{log('زمان صحبت (۶۰ ثانیه) تمام شد');stopTalk()});
-  setTimeout(loadChs,800);
-}
-async function loadChs(){
-  if(document.activeElement===$('chsel'))return;
-  const r=await fetch('/channels?code='+encodeURIComponent($('code').value)).then(x=>x.json()).catch(()=>[]);
-  if(!r.some(c=>c.name===ch))r.push({name:ch,n:1});
-  $('chsel').innerHTML=r.map(c=>`<option value="${esc(c.name)}"${c.name===ch?' selected':''}>${esc(c.name)} (${c.n})</option>`).join('');
-}
-function switchCh(n){
-  n=n.trim().replace(/[^\w\u0600-\u06FF-]/g,'').slice(0,20); if(!n||n===ch)return;
-  stopTalk(); ch=n; curF={holder:null}; openCh(n);
-}
-$('chsel').onchange=()=>switchCh($('chsel').value);
-$('addch').onclick=()=>{switchCh($('newch').value);$('newch').value='';$('sheet').classList.remove('show')};
-
-// خش‌خش بی‌سیم (وقتی دیگری صحبت می‌کند)
+// خش‌خش
 let nz=null,ng=null;
 function startHiss(){
   if(nz||+$('hiss').value===0)return; AC.resume();
@@ -166,14 +118,147 @@ function stopHiss(){
 $('hiss').oninput=()=>{if(ng)ng.gain.value=$('hiss').value/100*.4};
 $('hisstest').onclick=()=>{startHiss();setTimeout(stopHiss,1500)};
 
-// WebRTC
+// فیلتر صدای رادیویی روی صدای دریافتی: باند باریک + کمی اعوجاج + کمپرسور
+const anTx=AC.createAnalyser(),anRx=AC.createAnalyser(); anTx.fftSize=anRx.fftSize=512;
+function radioChain(src){
+  const hp=AC.createBiquadFilter(),lp=AC.createBiquadFilter(),ws=AC.createWaveShaper(),cp=AC.createDynamicsCompressor(),g=AC.createGain();
+  hp.type='highpass'; hp.frequency.value=280; lp.type='lowpass'; lp.frequency.value=3200;
+  const c=new Float32Array(256); for(let i=0;i<256;i++){const x=i/128-1;c[i]=Math.tanh(2.2*x)/Math.tanh(2.2)} ws.curve=c;
+  cp.threshold.value=-24; cp.ratio.value=6;
+  src.connect(hp); hp.connect(lp); lp.connect(ws); ws.connect(cp); cp.connect(g); cp.connect(anRx); g.connect(AC.destination);
+  return g;
+}
+function applyAudio(){
+  const radio=$('radio').checked&&AC.state==='running',v=$('vol').value/100;
+  Object.keys(audios).forEach(id=>{const c=chains[id];audios[id].muted=radio&&!!c;audios[id].volume=v;if(c)c.g.gain.value=radio?v*1.4:0});
+  if(lb){lb.au.muted=radio&&!!lb.g;lb.au.volume=v;if(lb.g)lb.g.gain.value=radio?v*1.4:0}
+}
+$('vol').oninput=$('radio').onchange=applyAudio; AC.onstatechange=applyAudio;
+
+// میکروفون: فیلتر بم + کمپرسور + تقویت
+async function processMic(raw){
+  try{
+    await rsm(); if(AC.state!=='running')return raw;
+    const src=AC.createMediaStreamSource(new MediaStream([raw])),hp=AC.createBiquadFilter(),cp=AC.createDynamicsCompressor(),g=AC.createGain(),dst=AC.createMediaStreamDestination();
+    hp.type='highpass'; hp.frequency.value=100; cp.threshold.value=-30; cp.ratio.value=4; cp.attack.value=.005; cp.release.value=.15; g.gain.value=1.8;
+    src.connect(hp); hp.connect(cp); cp.connect(g); g.connect(dst); g.connect(anTx);
+    return dst.stream.getAudioTracks()[0];
+  }catch{return raw}
+}
+addEventListener('pointerdown',async()=>{            // اگر بدون لمس وصل شده بودیم، اولین لمس صدا را کامل می‌کند
+  await rsm();
+  if(track&&track===rawTrack&&AC.state==='running'){
+    const t=await processMic(rawTrack);
+    if(t!==rawTrack){t.enabled=track.enabled;Object.values(pcs).forEach(pc=>pc.getSenders().forEach(s=>s.track&&s.replaceTrack(t)));track=t}
+  }
+},{passive:true});
+
+// نشانگر سطح صدا و فرکانس کانال
+$('vu').innerHTML='<i></i>'.repeat(10);
+const bars=[...$('vu').children],vb=new Float32Array(512);
+const lvl=an=>{an.getFloatTimeDomainData(vb);let s=0;for(const x of vb)s+=x*x;return Math.sqrt(s/512)};
+setInterval(()=>{
+  let l=0; if(talking)l=lvl(anTx); else if((curF.holder&&curF.holder!==me)||lb)l=lvl(anRx);
+  const n=Math.min(10,Math.round(Math.sqrt(l)*14));
+  bars.forEach((b,i)=>b.className=i<n?'on'+(i>7?' x':i>5?' h':''):'');
+},80);
+const freqOf=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return(446.00625+(h%16)*.0125).toFixed(5)};
+
+// ---------- ورود (یک بار؛ بعد از آن خودکار) ----------
+async function doJoin(auto){
+  if(joining)return; joining=true;
+  const fail=m=>{joining=false;$('lst').textContent=m;if(!auto)alert(m)};
+  AC.resume();
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:true,channelCount:1,sampleRate:48000}})}
+  catch(e){return fail('میکروفون در دسترس نیست ('+e.name+'). مجوز میکروفون را بده و ورود را بزن.')}
+  $('lst').textContent='در حال اتصال به سرور (بار اول تا ۱ دقیقه)...';
+  const r=await fetch('/ice?code='+encodeURIComponent($('code').value)).catch(()=>null);
+  if(!r||!r.ok){ if(r&&r.status===403){$('pwbox').hidden=false;return fail('کد دعوت لازم است یا اشتباه است')} return fail('سرور در دسترس نیست') }
+  cfg.iceServers=await r.json(); store.set({...store.get(),code:$('code').value});
+  setInterval(()=>fetch('/ping').catch(()=>{}),240000);
+  rawTrack=stream.getAudioTracks()[0]; track=await processMic(rawTrack); track.enabled=false;
+  $('mic').textContent='میکروفون ✅'; setupMedia(); openCh('main'); setInterval(loadChs,15000);
+}
+$('join').onclick=()=>doJoin(false);
+$('logout').onclick=()=>{store.clear();location.reload()};
+async function deviceName(){                         // نام دستگاه از خود مرورگر (مدل گوشی)
+  let n='';
+  try{const u=navigator.userAgentData; if(u&&u.getHighEntropyValues){n=(await u.getHighEntropyValues(['model'])).model||''}}catch{}
+  if(n.length<2){const m=/;\s*([^;)]+?)\s+Build\//.exec(navigator.userAgent); n=m?m[1]:''}
+  if(n.length<2){const s=store.get(); const d=s.dev||(10+Math.floor(Math.random()*90)); store.set({...s,dev:d}); n='دستگاه '+d}
+  return n.slice(0,24);
+}
+$('code').onkeydown=e=>{if(e.key==='Enter')doJoin(false)};
+(async()=>{
+  const s=store.get(); $('code').value=s.code||''; myName=await deviceName(); $('dn').textContent=myName;
+  $('lst').textContent=s.code?'در حال اتصال...':'';
+  const open=await fetch('/ice').then(r=>r.ok).catch(()=>false);   // اگر سرور رمز نخواهد، کادر رمز پنهان می‌شود
+  if(open)$('pwbox').hidden=true;
+  if(open||s.code)doJoin(true); else $('lst').textContent='رمز را وارد کن';
+})();
+
+// ---------- کانال‌ها ----------
+function renderUsers(){
+  const rows=[[me,myName],...Object.entries(names)];
+  $('users').innerHTML='👥 '+rows.length+' · '+rows.map(([i,n])=>`<span class="${curF.holder===i?'talk':''}">${esc(n)}</span>`).join('، ');
+}
+function setFloor(f){
+  const prev=curF.holder; curF=f; const w=$('wave'); w.classList.toggle('busy',!!f.holder);
+  w.textContent=!f.holder?'● موج آزاد':f.holder===me?'🔴 شما در حال ارسال':'🔴 مشغول: '+(f.name||'');
+  if(!prev&&f.holder&&f.holder!==me)rxOpen();
+  if(prev&&!f.holder&&prev!==me)rxClose();
+  if(f.holder&&f.holder!==me)startHiss(); else stopHiss();
+  renderUsers();
+}
+function dropPeer(id){
+  if(pcs[id])pcs[id].close(); delete pcs[id]; delete names[id];
+  if(audios[id])audios[id].remove(); delete audios[id];
+  if(chains[id]){try{chains[id].src.disconnect();chains[id].g.disconnect()}catch{}} delete chains[id];
+}
+function openCh(c){
+  if(es)es.close(); Object.keys(pcs).forEach(dropPeer); stopHiss(); names={};
+  $('freq').textContent='CH '+c+' · '+freqOf(c)+' MHz';
+  es=new EventSource('/events?name='+encodeURIComponent(myName)+'&code='+encodeURIComponent($('code').value)+'&ch='+encodeURIComponent(c));
+  es.onopen=()=>$('net').className='dot on';
+  es.onerror=()=>$('net').className='dot off';
+  es.addEventListener('hello',e=>{
+    const d=JSON.parse(e.data); me=d.id; token=d.token; if(d.name)myName=d.name;
+    Object.keys(pcs).forEach(dropPeer);
+    d.peers.forEach(p=>{names[p.id]=p.name; connect(p.id,true)});
+    curF={holder:null}; setFloor(d.floor); $('login').hidden=true; $('app').hidden=false; joining=false;
+  });
+  es.addEventListener('join',e=>{const p=JSON.parse(e.data); names[p.id]=p.name; renderUsers(); log(p.name+' وارد شد')});
+  es.addEventListener('leave',e=>{dropPeer(JSON.parse(e.data).id); renderUsers()});
+  es.addEventListener('signal',e=>onSignal(JSON.parse(e.data)));
+  es.addEventListener('floor',e=>setFloor(JSON.parse(e.data)));
+  es.addEventListener('announce',e=>powerOn(JSON.parse(e.data).name));
+  es.addEventListener('revoked',()=>{log('زمان صحبت (۶۰ ثانیه) تمام شد');stopTalk()});
+  setTimeout(loadChs,800);
+}
+async function loadChs(){
+  if(document.activeElement===$('chsel'))return;
+  const r=await fetch('/channels?code='+encodeURIComponent($('code').value)).then(x=>x.json()).catch(()=>[]);
+  if(!r.some(c=>c.name===ch))r.push({name:ch,n:1});
+  $('chsel').innerHTML=r.map(c=>`<option value="${esc(c.name)}"${c.name===ch?' selected':''}>${esc(c.name)} (${c.n})</option>`).join('');
+}
+function switchCh(n){
+  n=n.trim().replace(/[^\w\u0600-\u06FF-]/g,'').slice(0,20); if(!n||n===ch)return;
+  stopTalk(); ch=n; curF={holder:null}; openCh(n);
+}
+$('chsel').onchange=()=>switchCh($('chsel').value);
+$('addch').onclick=()=>{switchCh($('newch').value);$('newch').value='';$('sheet').classList.remove('show')};
+
+// ---------- WebRTC ----------
 function connect(id,init){
   const pc=pcs[id]=new RTCPeerConnection(cfg);
   pc.addTrack(track,stream);
   pc.onicecandidate=e=>e.candidate&&post('/signal',{to:id,data:{c:e.candidate}});
   pc.ontrack=e=>{
-    let a=audios[id]; if(!a){a=audios[id]=new Audio(); a.autoplay=true; document.body.append(a)}
-    a.srcObject=e.streams[0]; a.volume=$('vol').value/100; a.play().catch(()=>{});
+    const s=e.streams[0]; let a=audios[id];
+    if(!a){a=audios[id]=new Audio(); a.autoplay=true; document.body.append(a)}
+    a.srcObject=s; a.play().catch(()=>{});
+    if(chains[id])try{chains[id].src.disconnect()}catch{}
+    const src=AC.createMediaStreamSource(s); chains[id]={src,g:radioChain(src)}; applyAudio();
   };
   pc.onconnectionstatechange=()=>log((names[id]||id)+': '+pc.connectionState);
   if(init)pc.onnegotiationneeded=async()=>{
@@ -192,19 +277,18 @@ function onSignal({from,data}){
     if(data.c){try{await pc.addIceCandidate(data.c)}catch{}}
   }).catch(e=>log('خطای اتصال: '+e.message));
 }
-$('vol').oninput=()=>Object.values(audios).forEach(a=>a.volume=$('vol').value/100);
 
-// PTT
+// ---------- PTT ----------
 async function startTalk(){
   wantTalk=true;
   const r=await post('/ptt',{action:'down'});
   if(!wantTalk){if(r.granted)post('/ptt',{action:'up'});return}
-  if(!r.granted){wantTalk=false;beep(200,.25);return flash('موج مشغول است'+(r.holder&&names[r.holder]?': '+names[r.holder]:''))}
-  talking=true; track.enabled=true; $('ptt').classList.add('on'); beep(880); $('tx').textContent='🔴 در حال ارسال';
+  if(!r.granted){wantTalk=false;vib([40,60,40]);tone(200,.25);return flash('موج مشغول است'+(r.holder&&names[r.holder]?': '+names[r.holder]:''))}
+  talking=true; track.enabled=true; $('ptt').classList.add('on'); vib(25); click(); beep(880); $('tx').textContent='🔴 در حال ارسال';
 }
 function stopTalk(){
   wantTalk=false; if(!talking)return;
-  talking=false; track.enabled=false; $('ptt').classList.remove('on'); beep(520); $('tx').textContent='';
+  talking=false; track.enabled=false; $('ptt').classList.remove('on'); vib(15); click(.25); beep(520); $('tx').textContent='';
   post('/ptt',{action:'up'});
 }
 const b=$('ptt');
@@ -213,9 +297,8 @@ b.onpointerup=b.onpointercancel=stopTalk;
 b.oncontextmenu=e=>e.preventDefault();
 addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&e.target.tagName!=='INPUT'){e.preventDefault();startTalk()}});
 addEventListener('keyup',e=>{if(e.code==='Space')stopTalk()});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&!sil)stopTalk()});
 
-// دکمهٔ هدفون / TWS (Media Session). صدای بی‌صدای ۱۰ ثانیه‌ای تا Chrome پخش‌کنندهٔ فعال حساب کند
+// ---------- دکمهٔ هدفون / TWS ----------
 let sil=null;
 function silentWav(){
   const n=80000,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
@@ -236,7 +319,7 @@ function setupMedia(){
 }
 $('hp').onclick=toggleTalk;
 
-// صابر: هر صدایی (هر جمله) = بوق ۲ ثانیه‌ای. تشخیص با بلندی صدا، نه با فهمیدن کلمه
+// ---------- صابر ----------
 let vadT=null,vadSrc=null,lastB=0,rec=null;
 function startVad(){
   const an=AC.createAnalyser(); an.fftSize=1024; vadSrc=AC.createMediaStreamSource(stream); vadSrc.connect(an);
@@ -265,20 +348,25 @@ $('sab').onclick=()=>{
   AC.resume(); startVad(); if($('asr').checked)startAsr(); $('sab').classList.add('on'); log('صابر به‌گوش فعال شد');
 };
 
-// تنظیمات و تست تک‌دستگاهی
+// ---------- تنظیمات و تست تک‌دستگاهی (با خش‌خش و افکت‌ها) ----------
 $('gear').onclick=()=>$('sheet').classList.add('show');
 $('close').onclick=()=>$('sheet').classList.remove('show');
-let lb=null;
 $('lb').onclick=async()=>{
-  if(lb){lb.a.close();lb.b.close();lb.au.remove();lb=null;return $('lb').textContent='تست تک‌دستگاهی'}
+  if(lb){
+    lb.a.close(); lb.b.close(); lb.au.remove(); if(lb.g){try{lb.src.disconnect();lb.g.disconnect()}catch{}}
+    lb=null; stopHiss(); rxClose(); return $('lb').textContent='تست تک‌دستگاهی';
+  }
   const a=new RTCPeerConnection(cfg),c=new RTCPeerConnection(cfg),au=new Audio(); au.autoplay=true; document.body.append(au);
   lb={a,b:c,au};
   a.onicecandidate=e=>e.candidate&&c.addIceCandidate(e.candidate);
   c.onicecandidate=e=>e.candidate&&a.addIceCandidate(e.candidate);
-  c.ontrack=e=>{au.srcObject=e.streams[0]};
-  const s=stream.clone(); s.getAudioTracks()[0].enabled=true; a.addTrack(s.getAudioTracks()[0],s);
+  c.ontrack=e=>{
+    const s=e.streams[0]; au.srcObject=s;
+    lb.src=AC.createMediaStreamSource(s); lb.g=radioChain(lb.src); applyAudio();
+  };
+  const t=track.clone(); t.enabled=true; a.addTrack(t,new MediaStream([t]));
   await a.setLocalDescription(await a.createOffer()); await c.setRemoteDescription(a.localDescription);
   await c.setLocalDescription(await c.createAnswer()); await a.setRemoteDescription(c.localDescription);
-  $('lb').textContent='⏹ توقف تست (با هدفون)';
+  rxOpen(); startHiss(); $('lb').textContent='⏹ توقف تست (با هدفون)';
 };
 </script></body></html>
