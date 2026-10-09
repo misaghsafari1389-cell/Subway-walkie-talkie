@@ -23,7 +23,8 @@ input[type=text]{width:100%;padding:12px;border-radius:10px;border:1px solid #30
 
 <section id="login" style="display:flex;flex-direction:column;gap:12px">
   <input id="name" type="text" placeholder="نام شما" maxlength="20">
-  <button class="s" id="join">ورود به موج (ورود آزمایشی)</button>
+  <input id="code" type="text" placeholder="کد دعوت" autocomplete="off">
+  <button class="s" id="join">ورود به موج (ورود آزمایشی با کد دعوت)</button>
 </section>
 
 <section id="app" hidden style="display:none;flex-direction:column;gap:12px">
@@ -59,9 +60,15 @@ function setFloor(f){
 $('join').onclick=async()=>{
   try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
   catch(e){return alert('میکروفون در دسترس نیست ('+e.name+'). آدرس باید localhost یا https باشد و مجوز میکروفون را بدهید.')}
+  const jb=$('join'),old=jb.textContent; jb.disabled=true; jb.textContent='در حال اتصال به سرور (بار اول تا ۱ دقیقه)...';
+  const r=await fetch('/ice?code='+encodeURIComponent($('code').value)).catch(()=>null);
+  jb.disabled=false; jb.textContent=old;
+  if(!r||!r.ok)return alert(r&&r.status===403?'کد دعوت اشتباه است':'سرور در دسترس نیست');
+  cfg.iceServers=await r.json();
+  setInterval(()=>fetch('/ping').catch(()=>{}),240000);          // سرور رایگان خواب نرود
   track=stream.getAudioTracks()[0]; track.enabled=false;
   $('mic').textContent='میکروفون: آماده ✅';
-  es=new EventSource('/events?name='+encodeURIComponent($('name').value||'کاربر'));
+  es=new EventSource('/events?name='+encodeURIComponent($('name').value||'کاربر')+'&code='+encodeURIComponent($('code').value));
   es.onopen=()=>$('net').className='dot on';
   es.onerror=()=>$('net').className='dot off';
   es.addEventListener('hello',e=>{
