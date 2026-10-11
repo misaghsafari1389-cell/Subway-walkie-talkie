@@ -21,7 +21,7 @@ const body = req => new Promise(ok => {
   req.on('end', () => { try { ok(JSON.parse(b)); } catch { ok({}); } });
 });
 
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   if (u.pathname === '/ping') { res.writeHead(200); return res.end('ok'); }
   if (['/ice', '/channels', '/events'].includes(u.pathname) && !okCode(u)) { res.writeHead(403); return res.end(); }
@@ -42,7 +42,7 @@ http.createServer(async (req, res) => {
     r.m.set(c.id, c); byId.set(c.id, c);
     const ping = setInterval(() => res.write(': ping\n\n'), 15000);
     req.on('close', () => {
-      clearInterval(ping); r.m.delete(c.id); byId.delete(c.id); release(r, c.id);
+      clearInterval(ping); if (c.ws) c.ws.destroy(); r.m.delete(c.id); byId.delete(c.id); release(r, c.id);
       all(r, 'leave', { id: c.id });
       if (!r.m.size && n !== 'main') rooms.delete(n);
     });
@@ -80,4 +80,43 @@ http.createServer(async (req, res) => {
     if (e) { res.writeHead(404); return res.end(); }
     res.writeHead(200, { 'Content-Type': F[1], 'Cache-Control': 'no-cache' }); res.end(d);
   });
-}).listen(PORT, () => console.log('WAVE v2 on port ' + PORT));
+});
+
+// ---- رله صدا: WebSocket دستی. فقط فریم‌های دارندهٔ نوبت صحبت به بقیهٔ کانال می‌رسد ----
+const WSGUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+function frame(op, p) {
+  const n = p.length, h = n < 126 ? Buffer.from([0x80 | op, n]) : Buffer.from([0x80 | op, 126, n >> 8, n & 255]);
+  return Buffer.concat([h, p]);
+}
+server.on('upgrade', (req, sock) => {
+  const u = new URL(req.url, 'http://x'), key = req.headers['sec-websocket-key'];
+  const c = byId.get(u.searchParams.get('id'));
+  if (u.pathname !== '/ws' || !c || c.token !== u.searchParams.get('token') || !key) { sock.write('HTTP/1.1 403 Forbidden\r\n\r\n'); return sock.destroy(); }
+  sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' +
+    crypto.createHash('sha1').update(key + WSGUID).digest('base64') + '\r\n\r\n');
+  if (c.ws) c.ws.destroy();
+  c.ws = sock;
+  let buf = Buffer.alloc(0);
+  sock.on('data', d => {
+    buf = Buffer.concat([buf, d]);
+    if (buf.length > 1 << 20) return sock.destroy();
+    for (;;) {
+      if (buf.length < 2) return;
+      const op = buf[0] & 15, masked = buf[1] & 128; let len = buf[1] & 127, off = 2;
+      if (len === 126) { if (buf.length < 4) return; len = buf.readUInt16BE(2); off = 4; }
+      else if (len === 127) { if (buf.length < 10) return; len = Number(buf.readBigUInt64BE(2)); off = 10; }
+      if (masked) off += 4;
+      if (buf.length < off + len) return;
+      let p = buf.subarray(off, off + len);
+      if (masked) { const m = buf.subarray(off - 4, off), q = Buffer.allocUnsafe(len); for (let i = 0; i < len; i++) q[i] = p[i] ^ m[i & 3]; p = q; }
+      buf = buf.subarray(off + len);
+      if (op === 8) return sock.destroy();
+      if (op === 9) sock.write(frame(10, p));
+      if (op === 2 && p.length > 0 && p.length <= 4096 && c.room.floor === c.id)
+        c.room.m.forEach(o => { if (o !== c && o.ws && !o.ws.destroyed) o.ws.write(frame(2, p)); });
+    }
+  });
+  sock.on('close', () => { if (c.ws === sock) c.ws = null; });
+  sock.on('error', () => {});
+});
+server.listen(PORT, () => console.log('WAVE v9 (audio relay) on port ' + PORT));
