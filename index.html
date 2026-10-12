@@ -5,12 +5,12 @@
 <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png">
 <title>WAVE</title>
 <style>
-:root{--bg:#0a0f0a;--pn:#111a10;--bd:#2b3c26;--gr:#9fe870;--am:#ffb000;--rd:#ff3b30;--mu:#6f8a63}
+:root{--bg:#0a0f0a;--pn:#111a10;--bd:#2b3c26;--gr:#9fe870;--am:#ffb000;--rd:#ff3b30;--mu:#6f8a63;--lcd:#9bd36a;--lcdbg:#0e170c}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
 body{background:var(--bg);color:var(--gr);font-family:ui-monospace,Menlo,Consolas,Tahoma,sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
 [hidden]{display:none!important}
-#login,#app{height:100%;display:flex;flex-direction:column;gap:10px;padding:12px 0;max-width:480px;margin:auto}
+#login,#app{height:100%;display:flex;flex-direction:column;gap:9px;padding:10px 0;max-width:480px;margin:auto}
 #login{position:fixed;inset:0;height:auto;max-width:none;margin:0;padding:0 24px 8dvh;align-items:center;justify-content:center;gap:14px;background:radial-gradient(circle at 50% 35%,#16261a,#0a0f0a 70%);z-index:5}
 .av{width:104px;height:104px;border-radius:50%;border:2px solid var(--bd);background:#0f1a0f center/62% no-repeat url(/icon-192.png)}
 #dn{font-size:20px;color:#e6f5d8;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -19,28 +19,37 @@ body{background:var(--bg);color:var(--gr);font-family:ui-monospace,Menlo,Consola
 header{display:flex;align-items:center;gap:8px}
 h1{margin:0;color:var(--am);letter-spacing:5px;font-size:20px;flex:1}
 .dot{width:12px;height:12px;border-radius:50%;background:var(--mu)}.dot.on{background:var(--gr);box-shadow:0 0 8px var(--gr)}.dot.off{background:var(--rd)}
-select,input[type=text]{padding:10px;border-radius:6px;border:1px solid var(--bd);background:#0a120a;color:var(--gr);font-size:16px;font-family:inherit;min-width:0}
-button.s{background:var(--pn);color:var(--gr);border:1px solid var(--bd);border-radius:6px;padding:11px 8px;font-size:14px;font-family:inherit}
-button.s.on{border-color:var(--am);color:var(--am)}
-#wave{text-align:center;padding:10px;border:1px solid var(--gr);border-radius:6px;font-size:17px}
+#sig{font-size:11px;color:var(--mu);white-space:nowrap}#sig b{color:var(--gr)}#sig i{color:var(--bd);font-style:normal}
+select,input[type=text],input[type=password]{padding:9px;border-radius:6px;border:1px solid var(--bd);background:#0a120a;color:var(--gr);font-size:15px;font-family:inherit;min-width:0}
+button.s,.chip{background:var(--pn);color:var(--gr);border:1px solid var(--bd);border-radius:6px;padding:10px 6px;font-size:14px;font-family:inherit}
+button.s.on{border-color:var(--am);color:var(--am)}.chip{padding:6px 9px;font-size:13px}
+#lcd{background:var(--lcdbg);border:2px solid var(--bd);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;box-shadow:inset 0 0 18px #000;color:var(--lcd)}
+.l1,.l3{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--mu)}
+#lch{font-size:20px;color:var(--lcd);letter-spacing:2px}
+#wave{text-align:center;padding:6px;border:1px solid var(--lcd);border-radius:4px;font-size:16px}
 #wave.busy{border-color:var(--rd);color:var(--rd);box-shadow:0 0 12px #ff3b3055}
-.meter{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--mu)}
-#vu{display:flex;gap:3px;flex:1;max-width:55%}#vu i{flex:1;height:10px;background:var(--bd);border-radius:1px}
+#vu{display:flex;gap:3px;width:48%}#vu i{flex:1;height:9px;background:var(--bd);border-radius:1px}
 #vu i.on{background:var(--gr)}#vu i.on.h{background:var(--am)}#vu i.on.x{background:var(--rd)}
-#users{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;padding:8px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--pn)}
+#users{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--lcd)}
 #users .talk{color:var(--rd);font-weight:bold}
 #pttbox{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-#ptt{width:min(64vw,36dvh);height:min(64vw,36dvh);border-radius:50%;border:6px double var(--bd);background:radial-gradient(#1b2a18,#0d140c);color:var(--am);font-size:30px;font-weight:bold;letter-spacing:4px;touch-action:none;font-family:inherit}
-#ptt small{display:block;font-size:11px;letter-spacing:0;color:var(--mu)}
+#ptt{width:min(52vw,33dvh);height:min(52vw,33dvh);border-radius:50%;border:6px double var(--bd);background:radial-gradient(#1b2a18,#0d140c);color:var(--am);font-size:28px;font-weight:bold;letter-spacing:4px;touch-action:none;font-family:inherit}
+#ptt small{display:block;font-size:10px;letter-spacing:0;color:var(--mu)}
 #ptt.on{background:radial-gradient(#5a1410,#240807);border-color:var(--rd);color:#fff;box-shadow:0 0 25px var(--rd)}
-#pwr{position:absolute;right:0;bottom:0;width:66px;height:34px;font-size:11px;font-family:inherit;border:1px solid var(--am);color:var(--am);border-radius:4px;background:var(--pn)}
-#pwr:active{background:var(--am);color:#000}
+.kw{position:absolute;top:50%;margin-top:-36px;width:62px;height:62px;touch-action:none}
+.kn{width:100%;height:100%;border-radius:50%;background:radial-gradient(#2d3d29,#0d140c);border:3px solid var(--bd);position:relative}
+.kn::after{content:'';position:absolute;top:4px;left:50%;width:4px;height:15px;margin-left:-2px;background:var(--am);border-radius:2px}
+.kw span{position:absolute;left:0;right:0;bottom:-17px;text-align:center;font-size:10px;color:var(--mu)}
+#pwr,#sos{position:absolute;bottom:0;width:70px;height:36px;font-size:11px;font-family:inherit;border-radius:4px;background:var(--pn);line-height:1.1;padding:0}
+#pwr{right:0;border:1px solid var(--am);color:var(--am)}#pwr:active{background:var(--am);color:#000}
+#sos{left:0;border:1px solid var(--rd);color:var(--rd)}#sos small{display:block;font-size:9px;color:var(--mu)}#sos:active{background:var(--rd);color:#fff}
 #tx{text-align:center;height:20px;font-size:14px}
-nav{display:flex;gap:8px}nav button{flex:1}
+nav{display:flex;gap:7px}nav button{flex:1}
 #sheet{position:fixed;inset:0;background:#000b;display:none}#sheet.show{display:flex}
-.box{width:100%;max-width:480px;margin:auto auto 0;background:var(--pn);border-top:2px solid var(--bd);padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;font-size:14px}
-.r{display:flex;align-items:center;justify-content:space-between;gap:8px}.r input[type=range]{flex:1}.r input[type=text]{flex:1}
-#log{height:70px;overflow:hidden;white-space:pre-wrap;font-size:11px;color:var(--mu)}
+.box{width:100%;max-width:480px;margin:auto auto 0;max-height:100dvh;overflow-y:auto;background:var(--pn);border-top:2px solid var(--bd);padding:12px 14px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:7px;font-size:13px}
+.r{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.r input[type=range]{flex:1}.r input[type=text],.r input[type=password],.r select{flex:1}
+#adminbox{display:flex;flex-wrap:wrap;gap:6px}
+#log{height:50px;overflow:hidden;white-space:pre-wrap;font-size:11px;color:var(--mu)}
 </style></head><body>
 <div id="login">
   <div class="av"></div>
@@ -49,22 +58,33 @@ nav{display:flex;gap:8px}nav button{flex:1}
   <div id="lst"></div>
 </div>
 <div id="app" hidden>
-  <header><h1>WAVE</h1><select id="chsel"></select><span id="net" class="dot"></span></header>
-  <div id="wave">● موج آزاد</div>
-  <div class="meter"><span id="freq"></span><div id="vu"></div></div>
-  <div id="users"></div>
-  <div id="pttbox"><button id="ptt">PTT<small>نگه دار و صحبت کن</small></button><button id="pwr">⏻ POWER</button></div>
+  <header><h1>WAVE</h1><select id="chsel"></select><span id="sig"></span><span id="net" class="dot"></span></header>
+  <div id="lcd">
+    <div class="l1"><span id="lch">CH main</span><span id="freq"></span></div>
+    <div id="wave">● موج آزاد</div>
+    <div class="l3"><span id="last"></span><div id="vu"></div></div>
+    <div id="users"></div>
+  </div>
+  <div id="pttbox">
+    <div class="kw" id="kwV" style="left:0"><div class="kn" id="knV"></div><span>صدا</span></div>
+    <button id="ptt">PTT<small>نگه دار و صحبت کن</small></button>
+    <div class="kw" id="kwC" style="right:0"><div class="kn" id="knC"></div><span>کانال</span></div>
+    <button id="sos">🚨 SOS<small>نگه دار</small></button>
+    <button id="pwr">⏻ POWER</button>
+  </div>
   <div id="tx"></div>
-  <nav><button class="s" id="sab">🎙 صابر</button><button class="s" id="hp">🎧 هدفون</button><button class="s" id="gear">⚙ تنظیمات</button></nav>
+  <nav><button class="s" id="sab">🎙 صابر</button><button class="s" id="hp">🎧</button><button class="s" id="rep">↻ بازپخش</button><button class="s" id="gear">⚙</button></nav>
 </div>
 <div id="sheet"><div class="box">
   <div class="r"><span>صدا</span><input id="vol" type="range" min="0" max="100" value="100"></div>
   <div class="r"><span>خش‌خش</span><input id="hiss" type="range" min="0" max="100" value="20"><button class="s" id="hisstest">تست</button></div>
-  <div class="r"><label><input id="radio" type="checkbox"> فیلتر رادیویی</label><label><input id="fx" type="checkbox" checked> بوق‌ها</label><span id="mic"></span></div>
-  <div class="r"><label><input id="asr" type="checkbox"> جملهٔ «صابر صابر از میثاق»</label></div>
+  <div class="r"><label><input id="radio" type="checkbox"> فیلتر رادیویی</label><label><input id="fx" type="checkbox" checked> بوق‌ها</label><label><input id="asr" type="checkbox"> جملهٔ صابر</label><span id="mic"></span></div>
   <div class="r"><span>صدای PTT</span><select id="snd"></select><button class="s" id="sndtest">پخش</button></div>
+  <div class="r"><select id="callsel"></select><button class="s" id="callbtn">🔔 زنگ بزن</button></div>
   <div class="r"><input id="newch" type="text" placeholder="نام کانال جدید" maxlength="20"><button class="s" id="addch">+ بساز</button></div>
-  <div class="r"><button class="s" id="lb">تست تک‌دستگاهی</button><button class="s" id="logout">خروج (تغییر رمز)</button><button class="s" id="close">بستن</button></div>
+  <div class="r"><input id="admpass" type="password" placeholder="رمز مدیر" autocomplete="off"><button class="s" id="admbtn">ورود مدیر</button></div>
+  <div id="adminbox" hidden></div>
+  <div class="r"><button class="s" id="lb">تست تک‌دستگاهی</button><button class="s" id="logout">خروج</button><button class="s" id="close">بستن</button></div>
   <div id="log"></div>
 </div></div>
 <script>
@@ -77,6 +97,7 @@ const flash=t=>{$('tx').textContent=t;clearTimeout(flash.t);flash.t=setTimeout((
 const post=(p,o)=>fetch(p,{method:'POST',body:JSON.stringify({id:me,token,...o})}).then(r=>r.json()).catch(()=>({}));
 const store={get(){try{return JSON.parse(localStorage.getItem('wave')||'{}')}catch{return{}}},set(o){try{localStorage.setItem('wave',JSON.stringify(o))}catch{}},clear(){try{localStorage.removeItem('wave')}catch{}}};
 const vib=m=>{try{navigator.vibrate&&navigator.vibrate(m)}catch{}};
+const cid=(()=>{const s=store.get();if(s.cid)return s.cid;const c=Math.random().toString(16).slice(2,14);store.set({...s,cid:c});return c})();   // شناسهٔ ثابت دستگاه (برای اخراج)
 const AC=new (window.AudioContext||window.webkitAudioContext)();
 const rsm=()=>Promise.race([AC.resume().catch(()=>{}),new Promise(r=>setTimeout(r,600))]);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -116,8 +137,9 @@ $('snd').innerHTML=Object.entries(SND).map(([k,v])=>`<option value="${k}">${v[0]
 $('snd').value=store.get().snd||'1';
 $('snd').onchange=()=>{store.set({...store.get(),snd:$('snd').value});pttOn();setTimeout(pttOff,600)};
 $('sndtest').onclick=()=>{pttOn();setTimeout(pttOff,600)};
-const rxOpen=()=>{click();startHiss()};            // شنونده: باز شدن موج
-const rxClose=()=>{stopHiss();pttOff()};        // شنونده: راجر بیپ آخر صحبت
+let recBuf=[],lastMsg=[],recOn=false,lastSpk=null,sosMode=false,totT=null,isAdmin=false,chList=[],rtt=-2;
+const rxOpen=()=>{click();startHiss();recBuf=[];recOn=true};                         // شنونده: باز شدن موج + شروع ضبط برای بازپخش
+const rxClose=()=>{stopHiss();pttOff();recOn=false;if(recBuf.length)lastMsg=recBuf};  // شنونده: راجر بیپ آخر صحبت
 function powerOn(n){
   flash('⏻ '+n+': POWER ON'); log(n+': POWER ON'); powerSound();
   setTimeout(()=>{try{const u=new SpeechSynthesisUtterance('Power on');u.lang='en-US';u.volume=1;u.rate=.95;speechSynthesis.speak(u)}catch{}},900);
@@ -162,7 +184,8 @@ for(let i=0;i<256;i++){const u=~i&255,t=(((u&15)<<3)+132<<((u>>4)&7))-132;UL[i]=
 const rxBus=AC.createGain(),rxDirect=AC.createGain(),rxRadio=radioChain(rxBus);
 rxBus.connect(rxDirect); rxDirect.connect(AC.destination);
 let ws=null,tap=null,tapSrc=null,sendUntil=0,upT=null,playT=0;
-function playChunk(bytes){
+function playChunk(bytes,noRec){
+  if(recOn&&!noRec){recBuf.push(bytes);if(recBuf.length>700)recBuf.shift()}
   const n=bytes.length,buf=AC.createBuffer(1,n,16000),d=buf.getChannelData(0);
   for(let i=0;i<n;i++)d[i]=UL[bytes[i]];
   const s=AC.createBufferSource(); s.buffer=buf; s.connect(rxBus);
@@ -232,7 +255,8 @@ async function doJoin(auto){
   try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1,sampleRate:48000}})}
   catch(e){return fail('میکروفون در دسترس نیست ('+e.name+'). مجوز میکروفون را بده و ورود را بزن.')}
   $('lst').textContent='در حال اتصال به سرور (بار اول تا ۱ دقیقه)...';
-  const r=await fetch('/ice?code='+encodeURIComponent($('code').value)).catch(()=>null);
+  const r=await fetch('/ice?code='+encodeURIComponent($('code').value)+'&cid='+cid).catch(()=>null);
+  if(r&&r.status===403&&(await r.clone().text())==='banned')return fail('⛔ مدیر تو را از این جلسه اخراج کرده است');
   if(!r||!r.ok){ if(r&&r.status===403){$('pwbox').hidden=false;return fail('کد دعوت لازم است یا اشتباه است')} return fail('سرور در دسترس نیست') }
   cfg.iceServers=await r.json(); store.set({...store.get(),code:$('code').value});
   setInterval(()=>fetch('/ping').catch(()=>{}),240000);
@@ -240,7 +264,7 @@ async function doJoin(auto){
   $('mic').textContent='میکروفون ✅'; setupMedia(); openCh('main'); setInterval(loadChs,15000);
 }
 $('join').onclick=()=>doJoin(false);
-$('logout').onclick=()=>{store.clear();location.reload()};
+$('logout').onclick=()=>{store.clear();store.set({cid});location.reload()};
 async function deviceName(){                         // نام دستگاه از خود مرورگر (مدل گوشی)
   let n='';
   const wm=/WaveModel\/(\S+)/.exec(navigator.userAgent); if(wm){try{n=decodeURIComponent(wm[1].replace(/\+/g,' '))}catch{}}
@@ -253,7 +277,7 @@ $('code').onkeydown=e=>{if(e.key==='Enter')doJoin(false)};
 (async()=>{
   const s=store.get(); $('code').value=s.code||''; myName=await deviceName(); $('dn').textContent=myName;
   $('lst').textContent=s.code?'در حال اتصال...':'';
-  const open=await fetch('/ice').then(r=>r.ok).catch(()=>false);   // اگر سرور رمز نخواهد، کادر رمز پنهان می‌شود
+  const open=await fetch('/ice?cid='+cid).then(r=>r.ok).catch(()=>false);   // اگر سرور رمز نخواهد، کادر رمز پنهان می‌شود
   if(open)$('pwbox').hidden=true;
   if(open||s.code)doJoin(true); else $('lst').textContent='رمز را وارد کن';
 })();
@@ -262,12 +286,16 @@ $('code').onkeydown=e=>{if(e.key==='Enter')doJoin(false)};
 function renderUsers(){
   const rows=[[me,myName],...Object.entries(names)];
   $('users').innerHTML='👥 '+rows.length+' · '+rows.map(([i,n])=>`<span class="${curF.holder===i?'talk':''}">${esc(n)}</span>`).join('، ');
+  const pv=$('callsel').value; $('callsel').innerHTML=Object.entries(names).map(([i,n])=>`<option value="${i}">${esc(n)}</option>`).join(''); if(names[pv])$('callsel').value=pv;
+  renderAdmin();
 }
 function setFloor(f){
   const prev=curF.holder; curF=f; const w=$('wave'); w.classList.toggle('busy',!!f.holder);
   w.textContent=!f.holder?'● موج آزاد':f.holder===me?'🔴 شما در حال ارسال':'🔴 مشغول: '+(f.name||'');
   if(!prev&&f.holder&&f.holder!==me)rxOpen();
   if(prev&&!f.holder&&prev!==me)rxClose();
+  if(!prev&&f.holder)lastSpk={name:f.holder===me?'شما':(f.name||''),t:new Date()};
+  $('last').textContent=lastSpk?'آخر: '+lastSpk.name+' '+lastSpk.t.toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'}):'';
   renderUsers();
 }
 function dropPeer(id){
@@ -277,12 +305,12 @@ function dropPeer(id){
 }
 function openCh(c){
   if(es)es.close(); Object.keys(pcs).forEach(dropPeer); names={};
-  $('freq').textContent='CH '+c+' · '+freqOf(c)+' MHz';
-  es=new EventSource('/events?name='+encodeURIComponent(myName)+'&code='+encodeURIComponent($('code').value)+'&ch='+encodeURIComponent(c));
+  $('lch').textContent='CH '+c; $('freq').textContent=freqOf(c)+' MHz';
+  es=new EventSource('/events?name='+encodeURIComponent(myName)+'&code='+encodeURIComponent($('code').value)+'&ch='+encodeURIComponent(c)+'&cid='+cid);
   es.onopen=()=>$('net').className='dot on';
   es.onerror=()=>$('net').className='dot off';
   es.addEventListener('hello',e=>{
-    const d=JSON.parse(e.data); me=d.id; token=d.token; if(d.name)myName=d.name; openWs();
+    const d=JSON.parse(e.data); me=d.id; token=d.token; if(d.name)myName=d.name; openWs(); if(store.get().adm)adminLogin(store.get().adm,true);
     Object.keys(pcs).forEach(dropPeer);
     d.peers.forEach(p=>{names[p.id]=p.name});
     curF={holder:null}; setFloor(d.floor); $('login').hidden=true; $('app').hidden=false; joining=false;
@@ -292,6 +320,10 @@ function openCh(c){
   es.addEventListener('signal',e=>onSignal(JSON.parse(e.data)));
   es.addEventListener('floor',e=>setFloor(JSON.parse(e.data)));
   es.addEventListener('announce',e=>powerOn(JSON.parse(e.data).name));
+  es.addEventListener('call',e=>callAlert(JSON.parse(e.data).name));
+  es.addEventListener('sos',e=>sosAlert(JSON.parse(e.data).name));
+  es.addEventListener('sosgrant',()=>sosGrant());
+  es.addEventListener('kicked',()=>kicked());
   es.addEventListener('revoked',()=>{log('زمان صحبت (۶۰ ثانیه) تمام شد');stopTalk()});
   setTimeout(loadChs,800);
 }
@@ -299,6 +331,7 @@ async function loadChs(){
   if(document.activeElement===$('chsel'))return;
   const r=await fetch('/channels?code='+encodeURIComponent($('code').value)).then(x=>x.json()).catch(()=>[]);
   if(!r.some(c=>c.name===ch))r.push({name:ch,n:1});
+  chList=r.map(c=>c.name);
   $('chsel').innerHTML=r.map(c=>`<option value="${esc(c.name)}"${c.name===ch?' selected':''}>${esc(c.name)} (${c.n})</option>`).join('');
 }
 function switchCh(n){
@@ -340,31 +373,99 @@ function onSignal({from,data}){
 
 // ---------- PTT ----------
 async function startTalk(){
+  if(sosMode&&talking){sosMode=false;stopTalk();return}
   clearTimeout(upT); wantTalk=true;
   const r=await post('/ptt',{action:'down'});
   if(!wantTalk){if(r.granted)post('/ptt',{action:'up'});return}
   if(!r.granted){wantTalk=false;vib([40,60,40]);tone(200,.25);return flash('موج مشغول است'+(r.holder&&names[r.holder]?': '+names[r.holder]:''))}
-  talking=true; track.enabled=true; $('ptt').classList.add('on'); vib(25); click(); pttOn(); $('tx').textContent='🔴 در حال ارسال';
+  talking=true; track.enabled=true; $('ptt').classList.add('on'); vib(25); click(); pttOn(); $('tx').textContent='🔴 در حال ارسال'; armTot();
 }
 function stopTalk(){
   wantTalk=false; if(!talking)return;
+  clearTimeout(totT); sosMode=false;
   talking=false; sendUntil=Date.now()+250; $('ptt').classList.remove('on'); vib(15); click(.25); pttOff(); $('tx').textContent='';
   upT=setTimeout(()=>{track.enabled=false;post('/ptt',{action:'up'})},260);   // ته جمله بریده نشود
 }
 const b=$('ptt');
 b.onpointerdown=e=>{e.preventDefault(); b.setPointerCapture(e.pointerId); startTalk()};
-b.onpointerup=b.onpointercancel=stopTalk;
+b.onpointerup=b.onpointercancel=()=>{if(!sosMode)stopTalk()};
 b.oncontextmenu=e=>e.preventDefault();
 addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&e.target.tagName!=='INPUT'){e.preventDefault();startTalk()}});
 addEventListener('keyup',e=>{if(e.code==='Space')stopTalk()});
 
+
+// ---------- هشدارها، اضطراری، مدیر، پینگ، دستگیره‌ها ----------
+function armTot(){clearTimeout(totT);totT=setTimeout(()=>{tone(700,.15,.35);setTimeout(()=>tone(700,.15,.35),250);flash('⚠ ۱۰ ثانیه تا پایان نوبت')},50000)}
+function callAlert(n){
+  flash('🔔 '+n+' تو را صدا زد'); log('🔔 '+n+' تو را صدا زد'); vib([200,100,200,100,200]);
+  seq([[1800,.12],[0,.08],[1800,.12],[0,.08],[1800,.12],[0,.3],[1800,.12],[0,.08],[1800,.12]],'square',.45);
+}
+function sosAlert(n){
+  flash('🚨 اضطراری: '+n); log('🚨 اضطراری: '+n); vib([300,150,300,150,300,150,600]);
+  const a=[]; for(let i=0;i<6;i++)a.push([1200,.22],[800,.22]); seq(a,'square',.5);
+}
+function sosGrant(){            // نوبت اولویت‌دار: بدون نگه‌داشتن دکمه؛ برای پایان یک بار PTT را بزن
+  wantTalk=true; talking=true; sosMode=true; track.enabled=true; $('ptt').classList.add('on'); vib(60); pttOn();
+  $('tx').textContent='🚨 نوبت اضطراری شما — برای پایان PTT را بزن'; armTot();
+}
+function kicked(){
+  if(es){es.close();es=null} const w=ws; ws=null; if(w)try{w.close()}catch{}
+  if(sil)sil.pause(); stopTalk(); $('app').hidden=true; $('login').hidden=false; $('pwbox').hidden=true; joining=false;
+  $('lst').textContent='⛔ مدیر تو را از این جلسه اخراج کرد';
+}
+let sosT=null;
+$('sos').onpointerdown=e=>{e.preventDefault();sosT=setTimeout(()=>{vib(80);post('/sos',{})},700)};
+$('sos').onpointerup=$('sos').onpointerleave=$('sos').onpointercancel=()=>clearTimeout(sosT);
+$('callbtn').onclick=()=>{const t=$('callsel').value;if(t){post('/call',{to:t});flash('🔔 زنگ زده شد')}};
+$('rep').onclick=()=>{
+  if(!lastMsg.length)return flash('پیامی برای بازپخش نیست');
+  playT=0; lastMsg.forEach(c=>playChunk(c,true)); flash('↻ بازپخش آخرین پیام');
+};
+async function adminLogin(pass,silent){
+  const r=await post('/admin',{pass});
+  if(r.ok){isAdmin=true;store.set({...store.get(),adm:pass});renderUsers();if(!silent)flash('✅ مدیر شدی')}
+  else{store.set({...store.get(),adm:''});if(!silent)flash('رمز مدیر اشتباه است')}
+}
+$('admbtn').onclick=()=>adminLogin($('admpass').value);
+function renderAdmin(){
+  const b=$('adminbox'); b.hidden=!isAdmin; if(!isAdmin)return;
+  b.innerHTML=Object.entries(names).map(([i,n])=>`<button class="chip" data-k="${i}">❌ ${esc(n)}</button>`).join('')+'<button class="chip" data-u="1">رفع محرومیت‌ها</button>';
+  b.querySelectorAll('button').forEach(x=>x.onclick=async()=>{
+    if(x.dataset.u){await post('/unban',{});flash('محرومیت‌ها برداشته شد')}
+    else{await post('/kick',{target:x.dataset.k});flash('اخراج شد')}
+  });
+}
+function drawSig(){
+  const n=rtt<0?0:rtt<150?4:rtt<300?3:rtt<600?2:1;
+  $('sig').innerHTML='<b>'+'▂▄▆█'.slice(0,n)+'</b><i>'+'▂▄▆█'.slice(n)+'</i> '+(rtt<0?'قطع':Math.round(rtt)+'ms');
+}
+setInterval(()=>{
+  if(!me)return; const t=performance.now();
+  fetch('/ping',{cache:'no-store'}).then(()=>{rtt=performance.now()-t;drawSig()}).catch(()=>{rtt=-1;drawSig()});
+},4000);
+function drag(el,start,move,end){
+  let on=false,a0=0;
+  const ang=e=>{const r=el.getBoundingClientRect();return Math.atan2(e.clientY-r.top-r.height/2,e.clientX-r.left-r.width/2)*180/Math.PI};
+  el.onpointerdown=e=>{e.preventDefault();on=true;el.setPointerCapture(e.pointerId);a0=ang(e);start()};
+  el.onpointermove=e=>{if(!on)return;let d=ang(e)-a0;if(d>180)d-=360;if(d<-180)d+=360;move(d)};
+  el.onpointerup=el.onpointercancel=()=>{if(on){on=false;if(end)end()}};
+}
+let v0=100,chIdx=0,chTmp=null;
+const rotV=()=>{$('knV').style.transform='rotate('+($('vol').value*2.7-135)+'deg)'};
+drag($('kwV'),()=>{v0=+$('vol').value},d=>{$('vol').value=Math.max(0,Math.min(100,Math.round(v0+d/270*100)));applyAudio();rotV()});
+$('vol').addEventListener('input',rotV); rotV();
+drag($('kwC'),()=>{chIdx=Math.max(0,(chList.length?chList:[ch]).indexOf(ch))},d=>{
+  const l=chList.length?chList:[ch],i=Math.max(0,Math.min(l.length-1,chIdx+Math.round(d/45)));
+  chTmp=l[i]; $('lch').textContent='CH '+chTmp; $('knC').style.transform='rotate('+(i*45)+'deg)';
+},()=>{ if(chTmp&&chTmp!==ch)switchCh(chTmp); chTmp=null; $('lch').textContent='CH '+ch; });
+
 // ---------- دکمهٔ هدفون / TWS ----------
 let sil=null;
-function silentWav(){
-  const n=80000,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
-  w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
-  v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);
-  const u=new Uint8Array(b,44); for(let i=0;i<n;i++)u[i]=127+(Math.random()*3|0);
+function silentWav(){   // ۱۰ ثانیه، عملاً بی‌صدا: سینوس ۲۰ هرتز با دامنهٔ بسیار کوچک (زیر آستانهٔ شنیدن، بدون خش)
+  const sr=8000,n=sr*10,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++)v.setInt16(44+i*2,Math.round(6*Math.sin(2*Math.PI*20*i/sr)),true);
   return URL.createObjectURL(new Blob([b],{type:'audio/wav'}));
 }
 function toggleTalk(){ if(sil)sil.play().catch(()=>{}); if(talking||wantTalk)stopTalk(); else startTalk(); }
