@@ -49,6 +49,10 @@ nav{display:flex;gap:7px}nav button{flex:1}
 .box{width:100%;max-width:480px;margin:auto auto 0;max-height:100dvh;overflow-y:auto;background:var(--pn);border-top:2px solid var(--bd);padding:12px 14px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:7px;font-size:13px}
 .r{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.r input[type=range]{flex:1}.r input[type=text],.r input[type=password],.r select{flex:1}
 #adminbox{display:flex;flex-wrap:wrap;gap:6px}
+#adminbox[hidden]{display:none!important}
+#adminmsg{font-size:12px;line-height:1.7;color:var(--am);min-height:0}
+#adminmsg:empty{display:none}
+.admin-empty{width:100%;padding:8px;border:1px dashed var(--bd);color:var(--mu);white-space:normal}
 #log{height:50px;overflow:hidden;white-space:pre-wrap;font-size:11px;color:var(--mu)}
 </style></head><body>
 <div id="login">
@@ -60,7 +64,7 @@ nav{display:flex;gap:7px}nav button{flex:1}
 <div id="app" hidden>
   <header><h1>WAVE</h1><select id="chsel"></select><span id="sig"></span><span id="net" class="dot"></span></header>
   <div id="lcd">
-    <div class="l1"><span id="lch">CH main</span><span id="freq"></span></div>
+    <div class="l1"><span id="lch">CH main</span><span id="freq" title="نمایش نمادین کانال؛ فرکانس رادیویی واقعی نیست"></span></div>
     <div id="wave">● موج آزاد</div>
     <div class="l3"><span id="last"></span><div id="vu"></div></div>
     <div id="users"></div>
@@ -83,6 +87,7 @@ nav{display:flex;gap:7px}nav button{flex:1}
   <div class="r"><select id="callsel"></select><button class="s" id="callbtn">🔔 زنگ بزن</button></div>
   <div class="r"><input id="newch" type="text" placeholder="نام کانال جدید" maxlength="20"><button class="s" id="addch">+ بساز</button></div>
   <div class="r"><input id="admpass" type="password" placeholder="رمز مدیر" autocomplete="off"><button class="s" id="admbtn">ورود مدیر</button></div>
+  <div id="adminmsg" role="status" aria-live="polite"></div>
   <div id="adminbox" hidden></div>
   <div class="r"><button class="s" id="lb">تست تک‌دستگاهی</button><button class="s" id="logout">خروج</button><button class="s" id="close">بستن</button></div>
   <div id="log"></div>
@@ -94,7 +99,7 @@ const cfg={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 const log=t=>{const l=$('log');l.textContent=(t+'\n'+l.textContent).split('\n').slice(0,6).join('\n')};
 const flash=t=>{$('tx').textContent=t;clearTimeout(flash.t);flash.t=setTimeout(()=>{if(!talking)$('tx').textContent=''},2200)};
-const post=(p,o)=>fetch(p,{method:'POST',body:JSON.stringify({id:me,token,...o})}).then(r=>r.json()).catch(()=>({}));
+const post=(p,o)=>{if(!me||!token)return Promise.resolve({ok:false,error:'offline'});return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({id:me,token,...o})}).then(async r=>{let d={};try{d=await r.json()}catch{}return r.ok?d:{...d,ok:false,status:r.status}}).catch(()=>({ok:false,error:'network'}))};
 const store={get(){try{return JSON.parse(localStorage.getItem('wave')||'{}')}catch{return{}}},set(o){try{localStorage.setItem('wave',JSON.stringify(o))}catch{}},clear(){try{localStorage.removeItem('wave')}catch{}}};
 const vib=m=>{try{navigator.vibrate&&navigator.vibrate(m)}catch{}};
 const cid=(()=>{const s=store.get();if(s.cid)return s.cid;const c=Math.random().toString(16).slice(2,14);store.set({...s,cid:c});return c})();   // شناسهٔ ثابت دستگاه (برای اخراج)
@@ -183,7 +188,7 @@ const UL=new Float32Array(256);
 for(let i=0;i<256;i++){const u=~i&255,t=(((u&15)<<3)+132<<((u>>4)&7))-132;UL[i]=(u&0x80?-t:t)/32768}
 const rxBus=AC.createGain(),rxDirect=AC.createGain(),rxRadio=radioChain(rxBus);
 rxBus.connect(rxDirect); rxDirect.connect(AC.destination);
-let ws=null,tap=null,tapSrc=null,sendUntil=0,upT=null,playT=0;
+let ws=null,tap=null,tapSrc=null,sendUntil=0,upT=null,playT=0,wsRetry=0,wsRetryTimer=null,netRetryTimer=null,joinPingTimer=null,chPollTimer=null;
 function playChunk(bytes,noRec){
   if(recOn&&!noRec){recBuf.push(bytes);if(recBuf.length>700)recBuf.shift()}
   const n=bytes.length,buf=AC.createBuffer(1,n,16000),d=buf.getChannelData(0);
@@ -193,14 +198,17 @@ function playChunk(bytes,noRec){
   s.start(playT); playT+=buf.duration;
 }
 function openWs(){
-  const old=ws; ws=null; if(old)try{old.close()}catch{}
-  const w=ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws?id='+me+'&token='+token);
+  if(!me||!token)return; clearTimeout(wsRetryTimer);
+  const old=ws; ws=null; if(old)try{old.onclose=null;old.close()}catch{}
+  let w;try{w=ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws?id='+encodeURIComponent(me)+'&token='+encodeURIComponent(token))}catch{scheduleWsRetry();return}
   w.binaryType='arraybuffer';
-  w.onmessage=e=>{if(e.data.byteLength)playChunk(new Uint8Array(e.data))};
-  w.onclose=()=>{if(ws===w)setTimeout(()=>{if(ws===w)openWs()},2000)};
-  w.onerror=()=>{};
+  w.onopen=()=>{if(ws===w){wsRetry=0;log('اتصال صوتی برقرار شد')}};
+  w.onmessage=e=>{if(ws===w&&e.data&&e.data.byteLength)playChunk(new Uint8Array(e.data))};
+  w.onclose=()=>{if(ws===w){ws=null;track&&(track.enabled=false);if(talking)stopTalk();scheduleWsRetry()}};
+  w.onerror=()=>{try{w.close()}catch{}};
 }
-setInterval(()=>{if(ws&&ws.readyState===1)ws.send(new ArrayBuffer(0))},25000);   // زنده نگه داشتن اتصال
+function scheduleWsRetry(){if(!me||!token||wsRetryTimer)return;const wait=Math.min(30000,2000*Math.pow(2,Math.min(wsRetry++,4)));wsRetryTimer=setTimeout(()=>{wsRetryTimer=null;if(!document.hidden||navigator.onLine)openWs()},wait)}
+setInterval(()=>{if(ws&&ws.readyState===1){try{ws.send(new ArrayBuffer(0))}catch{try{ws.close()}catch{}}}},25000);   // زنده نگه داشتن اتصال
 function ensureTap(){
   try{
     if(tapSrc)tapSrc.disconnect();
@@ -255,13 +263,13 @@ async function doJoin(auto){
   try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1,sampleRate:48000}})}
   catch(e){return fail('میکروفون در دسترس نیست ('+e.name+'). مجوز میکروفون را بده و ورود را بزن.')}
   $('lst').textContent='در حال اتصال به سرور (بار اول تا ۱ دقیقه)...';
-  const r=await fetch('/ice?code='+encodeURIComponent($('code').value)+'&cid='+cid).catch(()=>null);
+  const r=await fetch('/ice',{headers:{'X-Wave-Code':$('code').value},cache:'no-store'}).catch(()=>null);
   if(r&&r.status===403&&(await r.clone().text())==='banned')return fail('⛔ مدیر تو را از این جلسه اخراج کرده است');
   if(!r||!r.ok){ if(r&&r.status===403){$('pwbox').hidden=false;return fail('کد دعوت لازم است یا اشتباه است')} return fail('سرور در دسترس نیست') }
   cfg.iceServers=await r.json(); store.set({...store.get(),code:$('code').value});
-  setInterval(()=>fetch('/ping').catch(()=>{}),240000);
+  clearInterval(joinPingTimer); joinPingTimer=setInterval(()=>fetch('/ping',{cache:'no-store'}).catch(()=>{}),240000);
   rawTrack=stream.getAudioTracks()[0]; track=await processMic(rawTrack); track.enabled=false; ensureTap();
-  $('mic').textContent='میکروفون ✅'; setupMedia(); openCh('main'); setInterval(loadChs,15000);
+  $('mic').textContent='میکروفون ✅'; setupMedia(); openCh('main'); clearInterval(chPollTimer); chPollTimer=setInterval(loadChs,15000);
 }
 $('join').onclick=()=>doJoin(false);
 $('logout').onclick=()=>{store.clear();store.set({cid});location.reload()};
@@ -277,7 +285,7 @@ $('code').onkeydown=e=>{if(e.key==='Enter')doJoin(false)};
 (async()=>{
   const s=store.get(); $('code').value=s.code||''; myName=await deviceName(); $('dn').textContent=myName;
   $('lst').textContent=s.code?'در حال اتصال...':'';
-  const open=await fetch('/ice?cid='+cid).then(r=>r.ok).catch(()=>false);   // اگر سرور رمز نخواهد، کادر رمز پنهان می‌شود
+  const open=await fetch('/ice',{cache:'no-store'}).then(r=>r.ok).catch(()=>false);   // اگر سرور رمز نخواهد، کادر رمز پنهان می‌شود
   if(open)$('pwbox').hidden=true;
   if(open||s.code)doJoin(true); else $('lst').textContent='رمز را وارد کن';
 })();
@@ -294,6 +302,7 @@ function setFloor(f){
   w.textContent=!f.holder?'● موج آزاد':f.holder===me?'🔴 شما در حال ارسال':'🔴 مشغول: '+(f.name||'');
   if(!prev&&f.holder&&f.holder!==me)rxOpen();
   if(prev&&!f.holder&&prev!==me)rxClose();
+  if(f.holder!==me && talking){talking=false;wantTalk=false;clearTimeout(totT);clearTimeout(upT);if(track)track.enabled=false;$('ptt').classList.remove('on');$('tx').textContent='';sosMode=false;}
   if(!prev&&f.holder)lastSpk={name:f.holder===me?'شما':(f.name||''),t:new Date()};
   $('last').textContent=lastSpk?'آخر: '+lastSpk.name+' '+lastSpk.t.toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'}):'';
   renderUsers();
@@ -306,11 +315,11 @@ function dropPeer(id){
 function openCh(c){
   if(es)es.close(); Object.keys(pcs).forEach(dropPeer); names={};
   $('lch').textContent='CH '+c; $('freq').textContent=freqOf(c)+' MHz';
-  es=new EventSource('/events?name='+encodeURIComponent(myName)+'&code='+encodeURIComponent($('code').value)+'&ch='+encodeURIComponent(c)+'&cid='+cid);
-  es.onopen=()=>$('net').className='dot on';
-  es.onerror=()=>$('net').className='dot off';
+  es=new EventSource('/events?name='+encodeURIComponent(myName)+'&ch='+encodeURIComponent(c)+'&cid='+encodeURIComponent(cid));
+  es.onopen=()=>{$('net').className='dot on';clearTimeout(netRetryTimer);netRetryTimer=null};
+  es.onerror=()=>{ $('net').className='dot off'; if(es){es.close();} if(!netRetryTimer)netRetryTimer=setTimeout(()=>{netRetryTimer=null;if(stream&&track)openCh(ch)},Math.min(15000,2000*Math.max(1,wsRetry||1))); };
   es.addEventListener('hello',e=>{
-    const d=JSON.parse(e.data); me=d.id; token=d.token; if(d.name)myName=d.name; openWs(); if(store.get().adm)adminLogin(store.get().adm,true);
+    const d=JSON.parse(e.data); me=d.id; token=d.token; if(d.name)myName=d.name; openWs(); 
     Object.keys(pcs).forEach(dropPeer);
     d.peers.forEach(p=>{names[p.id]=p.name});
     curF={holder:null}; setFloor(d.floor); $('login').hidden=true; $('app').hidden=false; joining=false;
@@ -329,17 +338,18 @@ function openCh(c){
 }
 async function loadChs(){
   if(document.activeElement===$('chsel'))return;
-  const r=await fetch('/channels?code='+encodeURIComponent($('code').value)).then(x=>x.json()).catch(()=>[]);
+  const r=await fetch('/channels',{cache:'no-store'}).then(x=>x.ok?x.json():[]).catch(()=>[]);
   if(!r.some(c=>c.name===ch))r.push({name:ch,n:1});
   chList=r.map(c=>c.name);
   $('chsel').innerHTML=r.map(c=>`<option value="${esc(c.name)}"${c.name===ch?' selected':''}>${esc(c.name)} (${c.n})</option>`).join('');
 }
+function normalizeChannel(n){return String(n||'').normalize('NFKC').replace(/[\u064A\u0649]/g,'ی').replace(/\u0643/g,'ک').trim().replace(/[^\w\u0600-\u06FF-]/g,'').slice(0,20)}
 function switchCh(n){
-  n=n.trim().replace(/[^\w\u0600-\u06FF-]/g,'').slice(0,20); if(!n||n===ch)return;
-  stopTalk(); ch=n; curF={holder:null}; openCh(n);
+  n=normalizeChannel(n); if(!n){flash('نام کانال معتبر نیست');return false} if(n===ch)return true;
+  stopTalk(); wantTalk=false; clearTimeout(upT); if(track)track.enabled=false; ch=n; curF={holder:null}; openCh(n); return true;
 }
 $('chsel').onchange=()=>switchCh($('chsel').value);
-$('addch').onclick=()=>{switchCh($('newch').value);$('newch').value='';$('sheet').classList.remove('show')};
+$('addch').onclick=async()=>{const raw=$('newch').value,n=normalizeChannel(raw);if(!n){flash('نام کانال را وارد کن');return}if(n===ch){flash('همین کانال انتخاب شده است');return}const known=await fetch('/channels',{cache:'no-store'}).then(r=>r.ok?r.json():[]).catch(()=>[]);if(known.some(x=>x.name===n)){flash('این کانال از قبل وجود دارد؛ در حال ورود');switchCh(n)}else if(known.length>=10){flash('ظرفیت کانال‌ها تکمیل است');return}else switchCh(n);$('newch').value='';$('sheet').classList.remove('show')};
 
 // ---------- WebRTC ----------
 function connect(id,init){
@@ -380,11 +390,11 @@ async function startTalk(){
   if(!r.granted){wantTalk=false;vib([40,60,40]);tone(200,.25);return flash('موج مشغول است'+(r.holder&&names[r.holder]?': '+names[r.holder]:''))}
   talking=true; track.enabled=true; $('ptt').classList.add('on'); vib(25); click(); pttOn(); $('tx').textContent='🔴 در حال ارسال'; armTot();
 }
-function stopTalk(){
-  wantTalk=false; if(!talking)return;
-  clearTimeout(totT); sosMode=false;
-  talking=false; sendUntil=Date.now()+250; $('ptt').classList.remove('on'); vib(15); click(.25); pttOff(); $('tx').textContent='';
-  upT=setTimeout(()=>{track.enabled=false;post('/ptt',{action:'up'})},260);   // ته جمله بریده نشود
+function stopTalk(force=false){
+  wantTalk=false; clearTimeout(totT); sosMode=false;
+  if(!talking){if(force){clearTimeout(upT);if(track)track.enabled=false;post('/ptt',{action:'up'})}return}
+  talking=false; sendUntil=force?0:Date.now()+250; $('ptt').classList.remove('on'); vib(15); click(.25); pttOff(); $('tx').textContent='';
+  clearTimeout(upT);upT=setTimeout(()=>{if(track)track.enabled=false;post('/ptt',{action:'up'})},force?0:260);
 }
 const b=$('ptt');
 b.onpointerdown=e=>{e.preventDefault(); b.setPointerCapture(e.pointerId); startTalk()};
@@ -409,30 +419,58 @@ function sosGrant(){            // نوبت اولویت‌دار: بدون نگ
   $('tx').textContent='🚨 نوبت اضطراری شما — برای پایان PTT را بزن'; armTot();
 }
 function kicked(){
+  clearTimeout(netRetryTimer);clearTimeout(wsRetryTimer);netRetryTimer=wsRetryTimer=null;
   if(es){es.close();es=null} const w=ws; ws=null; if(w)try{w.close()}catch{}
-  if(sil)sil.pause(); stopTalk(); $('app').hidden=true; $('login').hidden=false; $('pwbox').hidden=true; joining=false;
+  stopTalk(true); if(stream)stream.getTracks().forEach(t=>t.stop());if(sil)sil.pause(); $('app').hidden=true; $('login').hidden=false; $('pwbox').hidden=true; joining=false;
   $('lst').textContent='⛔ مدیر تو را از این جلسه اخراج کرد';
 }
 let sosT=null;
-$('sos').onpointerdown=e=>{e.preventDefault();sosT=setTimeout(()=>{vib(80);post('/sos',{})},700)};
-$('sos').onpointerup=$('sos').onpointerleave=$('sos').onpointercancel=()=>clearTimeout(sosT);
-$('callbtn').onclick=()=>{const t=$('callsel').value;if(t){post('/call',{to:t});flash('🔔 زنگ زده شد')}};
+$('sos').onpointerdown=e=>{e.preventDefault();clearTimeout(sosT);$('sos').setAttribute('aria-pressed','true');sosT=setTimeout(async()=>{vib(80);flash('ارسال درخواست اضطراری…');const r=await post('/sos',{});if(r.ok===false)flash('ارسال SOS ناموفق بود؛ اتصال را بررسی کن');else flash(r.granted?'🚨 نوبت اضطراری صادر شد':r.queued?'🚨 درخواست در صف اضطراری ثبت شد':'🚨 هشدار اضطراری ارسال شد')},700)};
+$('sos').onpointerup=$('sos').onpointerleave=$('sos').onpointercancel=()=>{clearTimeout(sosT);$('sos').setAttribute('aria-pressed','false')};
+$('callbtn').onclick=async()=>{const t=$('callsel').value;if(t){const r=await post('/call',{to:t});flash(r.ok===false?'ارسال زنگ ناموفق بود':'🔔 درخواست زنگ ارسال شد')}};
+addEventListener('pagehide',()=>{try{if(talking||wantTalk)navigator.sendBeacon('/ptt',new Blob([JSON.stringify({id:me,token,action:'up'})],{type:'application/json'}))}catch{};try{if(es)es.close();if(ws)ws.close()}catch{};if(stream)stream.getTracks().forEach(t=>t.stop())});
 $('rep').onclick=()=>{
   if(!lastMsg.length)return flash('پیامی برای بازپخش نیست');
   playT=0; lastMsg.forEach(c=>playChunk(c,true)); flash('↻ بازپخش آخرین پیام');
 };
 async function adminLogin(pass,silent){
-  const r=await post('/admin',{pass});
-  if(r.ok){isAdmin=true;store.set({...store.get(),adm:pass});renderUsers();if(!silent)flash('✅ مدیر شدی')}
-  else{store.set({...store.get(),adm:''});if(!silent)flash('رمز مدیر اشتباه است')}
+  const msg=$('adminmsg');
+  if(!pass){msg.textContent='رمز مدیر را وارد کن.';return}
+  $('admbtn').disabled=true; msg.textContent='در حال بررسی رمز مدیر…';
+  try{
+    const r=await post('/admin',{pass});
+    if(r.ok){
+      isAdmin=true; $('admpass').value='';
+      renderUsers();
+      msg.textContent='✅ ورود مدیر تأیید شد. کاربران فعال این کانال در پایین نمایش داده می‌شوند.';
+      if(!silent)flash('✅ ورود مدیر موفق بود');
+    }else{
+      isAdmin=false; renderAdmin();
+      msg.textContent=r.status===429?'تعداد تلاش‌ها زیاد است؛ کمی بعد دوباره امتحان کن.':r.error==='offline'?'اتصال به سرور برقرار نیست؛ دوباره وصل شو.':'رمز مدیر نادرست است یا دسترسی مدیر روی سرور فعال نیست.';
+      if(!silent)flash('ورود مدیر ناموفق بود');
+    }
+  }catch{
+    isAdmin=false;renderAdmin();msg.textContent='ارتباط با سرور برقرار نشد؛ وضعیت اتصال را بررسی کن.';
+  }finally{$('admbtn').disabled=false}
 }
 $('admbtn').onclick=()=>adminLogin($('admpass').value);
+$('admpass').onkeydown=e=>{if(e.key==='Enter')adminLogin($('admpass').value)};
 function renderAdmin(){
-  const b=$('adminbox'); b.hidden=!isAdmin; if(!isAdmin)return;
-  b.innerHTML=Object.entries(names).map(([i,n])=>`<button class="chip" data-k="${i}">❌ ${esc(n)}</button>`).join('')+'<button class="chip" data-u="1">رفع محرومیت‌ها</button>';
+  const b=$('adminbox'),msg=$('adminmsg');
+  b.hidden=!isAdmin;
+  if(!isAdmin){b.innerHTML='';return}
+  const active=Object.entries(names).filter(([id])=>id!==me);
+  b.innerHTML=(active.length
+    ?active.map(([id,n])=>`<button class="chip" data-k="${esc(id)}">❌ اخراج ${esc(n)}</button>`).join('')
+    :'<div class="admin-empty">👤 در حال حاضر کاربر دیگری در این کانال نیست؛ فقط شما متصل هستید.</div>')
+    +'<button class="chip" data-u="1">رفع محرومیت‌ها</button>';
   b.querySelectorAll('button').forEach(x=>x.onclick=async()=>{
-    if(x.dataset.u){await post('/unban',{});flash('محرومیت‌ها برداشته شد')}
-    else{await post('/kick',{target:x.dataset.k});flash('اخراج شد')}
+    x.disabled=true;
+    try{
+      if(x.dataset.u){const r=await post('/unban',{});msg.textContent=r.ok?'محرومیت‌های ثبت‌شده در این اجرای سرور برداشته شد.':'رفع محرومیت انجام نشد؛ دسترسی مدیر را بررسی کن.'}
+      else{const r=await post('/kick',{target:x.dataset.k});msg.textContent=r.ok?'درخواست اخراج ارسال شد.':'اخراج ناموفق بود؛ ممکن است کاربر قطع شده باشد.'}
+    }catch{msg.textContent='خطا در ارتباط با سرور.'}
+    finally{x.disabled=false}
   });
 }
 function drawSig(){
